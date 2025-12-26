@@ -1,0 +1,60 @@
+.leave-page {
+  padding: 20px;
+}
+
+.leave-card {
+  background: #fff;
+  padding: 20px;
+  width: 400px;
+  border-radius: 8px;
+}
+
+.leave-card label {
+  display: block;
+  margin-top: 10px;
+}
+
+.leave-card input,
+.leave-card textarea {
+  width: 100%;
+  padding: 8px;
+  margin-top: 4px;
+}
+
+.leave-card textarea {
+  resize: none;
+  height: 80px;
+}
+
+.leave-card button {
+  margin-top: 15px;
+  width: 100%;
+  padding: 10px;
+  background: #1976d2;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+
+/* TABLE */
+.leave-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.leave-table th,
+.leave-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+.status.pending {
+  color: orange;
+}
+.status.approved {
+  color: green;
+}
+.status.rejected {
+  color: red;
+}

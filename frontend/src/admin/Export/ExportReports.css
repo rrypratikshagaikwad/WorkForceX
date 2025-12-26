@@ -1,0 +1,50 @@
+.export-page {
+  padding: 20px;
+}
+
+.export-card {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  width: 400px;
+}
+
+.export-card input {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.export-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.export-buttons button {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+
+.export-buttons .excel {
+  background: #2e7d32;
+}
+
+.export-buttons .excel:hover {
+  background: #1b5e20;
+}
+
+.export-buttons .pdf {
+  background: #d32f2f;
+}
+
+.export-buttons .pdf:hover {
+  background: #b71c1c;
+}
