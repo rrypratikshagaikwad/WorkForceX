@@ -17,6 +17,8 @@ const AttendanceReport = () => {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [department, setDepartment] = useState("");
+const [officeId, setOfficeId] = useState("");
+const [offices, setOffices] = useState<{ location_id: number; location_name: string }[]>([]);
 
   useEffect(() => {
     fetchReport();
@@ -47,6 +49,31 @@ const AttendanceReport = () => {
     }
   };
 
+useEffect(() => {
+  // fetchOffices();
+  fetchReport();
+}, []);
+
+// const fetchOffices = async () => {
+//   try {
+//     const token = localStorage.getItem("token");
+
+//     const res = await fetch(
+//       "http://localhost:5000/admin/offices",
+//       {
+//         headers: { Authorization: `Bearer ${token}` }
+//       }
+//     );
+
+//     const data = await res.json();
+//     setOffices(data);
+//   } catch {
+//     toast.error("Failed to load offices");
+//   }
+// };
+
+
+
   return (
     <div className="attendance-report-page">
       <h2>Attendance Report</h2>
@@ -63,6 +90,14 @@ const AttendanceReport = () => {
           <option value="Account">Account</option>
           <option value="Civil">Civil</option>
         </select>
+        {/* <select value={officeId} onChange={e => setOfficeId(e.target.value)}>
+          <option value="">All Offices</option>
+          {offices.map(o => (
+            <option key={o.location_id} value={o.location_id}>
+              {o.location_name}
+            </option>
+          ))}
+        </select> */}
 
         <button className="apply-btn" onClick={fetchReport}>Apply</button>
       </div>

@@ -1,5 +1,6 @@
 const db = require("../config/db");
 const bcrypt = require("bcrypt");
+const PDFDocument = require("pdfkit");
 
 // exports.addEmployee = async (req, res) => {
 //   const {
@@ -53,25 +54,28 @@ const bcrypt = require("bcrypt");
 //   }
 // };
 exports.addEmployee = async (req, res) => {
-  const {
-    full_name,
-    email,
-    password,
-    designation,
-    department,
-    phone,
-    work_location,
-    joining_date,
-    employee_type,
-    shift_hours
-  } = req.body;
-
   const connection = await db.getConnection();
 
   try {
     await connection.beginTransaction();
 
-    // ❗ Check duplicate email
+    const {
+      full_name,
+      email,
+      password,
+      designation,
+      department,
+      phone,
+      work_location,
+      joining_date,
+      employee_type,
+      shift_hours,
+      blood_group,
+      permanent_address,
+      reference_contacts
+    } = req.body;
+
+    // 1️⃣ Check duplicate email
     const [[existing]] = await connection.query(
       "SELECT user_id FROM user WHERE email = ?",
       [email]
@@ -82,9 +86,9 @@ exports.addEmployee = async (req, res) => {
       return res.status(400).json({ message: "Email already exists" });
     }
 
+    // 2️⃣ Create user
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 1️⃣ User insert
     const [userResult] = await connection.query(
       `INSERT INTO user (name, email, password, phone, role)
        VALUES (?, ?, ?, ?, 'employee')`,
@@ -93,12 +97,13 @@ exports.addEmployee = async (req, res) => {
 
     const userId = userResult.insertId;
 
-    // 2️⃣ Employee insert
-    await connection.query(
+    // 3️⃣ Create employee ✅ employeeId DEFINED HERE
+    const [employeeResult] = await connection.query(
       `INSERT INTO employee
-       (user_id, full_name, designation, department, phone, work_location,
-        joining_date, status, employee_type, shift_hours)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
+       (user_id, full_name, designation, department, phone,
+        work_location, joining_date, status,
+        employee_type, shift_hours, blood_group, permanent_address)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`,
       [
         userId,
         full_name,
@@ -108,12 +113,35 @@ exports.addEmployee = async (req, res) => {
         work_location,
         joining_date,
         employee_type,
-        shift_hours
+        shift_hours,
+        blood_group,
+        permanent_address
       ]
     );
 
-    await connection.commit();
+    const employeeId = employeeResult.insertId; // ✅ INITIALIZED HERE
 
+    // 4️⃣ Insert reference contacts (AFTER employeeId exists)
+    if (Array.isArray(reference_contacts)) {
+      for (const ref of reference_contacts) {
+        if (ref.name && ref.phone) {
+          await connection.query(
+            `INSERT INTO employee_reference
+             (employee_id, name, phone, address, relation)
+             VALUES (?, ?, ?, ?, ?)`,
+            [
+              employeeId,
+              ref.name,
+              ref.phone,
+              ref.address,
+              ref.relation
+            ]
+          );
+        }
+      }
+    }
+
+    await connection.commit();
     res.json({ message: "Employee added successfully" });
 
   } catch (err) {
@@ -564,8 +592,134 @@ exports.adminSalaryReport = async (req, res) => {
   }
 };
 
+exports.approveSalary = async (req, res) => {
+  const { employee_id, month, year } = req.body;
+  const adminId = req.user.user_id;
+
+  if (!employee_id || !month || !year) {
+    return res.status(400).json({ message: "Required fields missing" });
+  }
+
+  try {
+    await db.query(
+      `INSERT INTO salary_approval
+       (employee_id, month, year, approved_by)
+       VALUES (?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE approved_at = NOW()`,
+      [employee_id, month, year, adminId]
+    );
+
+    res.json({ message: "Salary approved successfully" });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Approval failed" });
+  }
+};
+
+exports.downloadAdminPayslip = async (req, res) => {
+  const { employee_id, month, year } = req.query;
+
+  // 1️⃣ Check approval
+  const [[approval]] = await db.query(
+    `SELECT * FROM salary_approval
+     WHERE employee_id = ? AND month = ? AND year = ?`,
+    [employee_id, month, year]
+  );
+
+  if (!approval) {
+    return res.status(403).json({
+      message: "Salary not approved yet"
+    });
+  }
+
+  // 2️⃣ Fetch salary summary
+  const [[salary]] = await db.query(
+    `SELECT * FROM salary_summary
+     WHERE employee_id = ? AND month = ? AND year = ?`,
+    [employee_id, month, year]
+  );
+
+  if (!salary) {
+    return res.status(404).json({ message: "Salary data not found" });
+  }
+
+  // 3️⃣ Create PDF
+  const doc = new PDFDocument();
+
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename=payslip-${month}-${year}.pdf`
+  );
+
+  doc.pipe(res);
+
+  doc.fontSize(18).text("Company Name Pvt Ltd", { align: "center" });
+  doc.moveDown();
+
+  doc.fontSize(12)
+    .text(`Employee ID: ${salary.employee_id}`)
+    .text(`Month: ${month}/${year}`)
+    .text(`Present Days: ${salary.present_days}`)
+    .text(`Half Days: ${salary.half_days}`)
+    .text(`Absent Days: ${salary.absent_days}`)
+    .moveDown();
+
+  doc.text(`Monthly Salary: ₹${salary.monthly_salary}`);
+  doc.text(`Payable Salary: ₹${salary.payable_salary}`);
+
+  doc.moveDown();
+  doc.text("Authorized by HR Department");
+
+  doc.end();
+};
 
 
 
 
+// // OFFICE DAY REPORT
+// exports.getOfficeAttendanceReport = async (req, res) => {
+//   const { location_id, date } = req.query;
 
+//   try {
+//     const [rows] = await db.query(`
+//       SELECT 
+//         e.employee_id,
+//         e.full_name,
+//         a.attendance_status,
+//         TIME(a.check_in_time) AS check_in,
+//         TIME(a.check_out_time) AS check_out
+//       FROM attendance a
+//       JOIN employee e ON a.employee_id = e.employee_id
+//       WHERE a.location_id = ?
+//       AND DATE(a.check_in_time) = ?
+//     `, [location_id, date]);
+
+//     res.json(rows);
+//   } catch (err) {
+//     res.status(500).json({ message: "Failed to load office attendance report" });
+//   }
+// };
+
+// // OFFICE MONTH SUMMARY
+// exports.getMonthlyOfficeSummary = async (req, res) => {
+//   const { location_id, month, year } = req.query;
+
+//   try {
+//     const [rows] = await db.query(`
+//       SELECT 
+//         attendance_status,
+//         COUNT(*) AS count
+//       FROM attendance
+//       WHERE location_id = ?
+//       AND MONTH(check_in_time) = ?
+//       AND YEAR(check_in_time) = ?
+//       GROUP BY attendance_status
+//     `, [location_id, month, year]);
+
+//     res.json(rows);
+//   } catch (err) {
+//     res.status(500).json({ message: "Failed to load office summary" });
+//   }
+// };

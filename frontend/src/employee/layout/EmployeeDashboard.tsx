@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import CameraCapture from "../../components/CameraCapture";
+import LocationCapture from "../../components/LocationCapture";
 
 import {
   LineChart,
@@ -41,6 +43,15 @@ const EmployeeDashboard = () => {
   const today = new Date();
   const [month, setMonth] = useState(today.getMonth() + 1);
   const [year, setYear] = useState(today.getFullYear());
+
+//camera
+const [startVerification, setStartVerification] = useState(false);
+const [faceImage, setFaceImage] = useState<string | null>(null);
+//location
+const [location, setLocation] = useState<{
+  lat: number;
+  lng: number;
+} | null>(null);
 
   const getAuthHeader = () => {
     const token = localStorage.getItem("token");
@@ -88,16 +99,47 @@ const EmployeeDashboard = () => {
 
   /* -------------------- ACTIONS -------------------- */
 
-  const handleCheckIn = async () => {
-    const res = await fetch("http://localhost:5000/attendance/checkin", {
-      method: "POST",
-      headers: getAuthHeader()
-    });
-    const data = await res.json();
-    if (!res.ok) return toast.error(data.message);
-    toast.success("Checked in");
-    setAttendanceStatus("CHECKED_IN");
-  };
+  // const handleCheckIn = async () => {
+  //   const res = await fetch("http://localhost:5000/attendance/checkin", {
+  //     method: "POST",
+  //     headers: getAuthHeader()
+  //   });
+  //   const data = await res.json();
+  //   if (!res.ok) return toast.error(data.message);
+  //   toast.success("Checked in");
+  //   setAttendanceStatus("CHECKED_IN");
+  // };
+const handleCheckIn = async () => {
+  if (!faceImage || !location) {
+    toast.error("Face & Location required");
+    return;
+  }
+
+  const res = await fetch("http://localhost:5000/attendance/checkin", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeader()
+    },
+    body: JSON.stringify({
+      faceImage,
+      latitude: location.lat,
+      longitude: location.lng
+    })
+  });
+
+  const data = await res.json();
+  if (!res.ok) return toast.error(data.message);
+
+  toast.success("Checked in successfully");
+  setAttendanceStatus("CHECKED_IN");
+
+// RESET
+  setStartVerification(false);
+  setFaceImage(null);
+  setLocation(null);
+  
+};
 
   const handleCheckOut = async () => {
     const res = await fetch("http://localhost:5000/attendance/checkout", {
@@ -110,6 +152,17 @@ const EmployeeDashboard = () => {
     setAttendanceStatus("CHECKED_OUT");
   };
 
+
+  const handleFaceCapture = (image: string) => {
+  setFaceImage(image);
+  toast.success("Face captured successfully");
+};
+
+const handleLocationCapture = (lat: number, lng: number) => {
+  setLocation({ lat, lng });
+};
+
+
   /* -------------------- UI -------------------- */
 
   return (
@@ -120,10 +173,92 @@ const EmployeeDashboard = () => {
       <div className="today-card">
         <h3>Today's Attendance</h3>
 
-        {attendanceStatus === "NOT_CHECKED_IN" && (
+        {/* {attendanceStatus === "NOT_CHECKED_IN" && (
           <button onClick={handleCheckIn}>Check In</button>
-        )}
+        )} */}
+        
 
+    {/* {attendanceStatus === "NOT_CHECKED_IN" && (
+      <>
+      <CameraCapture onCapture={handleFaceCapture} />
+        <LocationCapture onLocation={handleLocationCapture} />
+  
+    {faceImage && location && (
+      <p style={{ color: "green" }}>✔ Face & location captured successfully</p>
+    )}
+
+    <button
+      onClick={handleCheckIn}
+      disabled={!faceImage}
+    >
+      Check In
+    </button>
+  </>
+)} */}
+
+{attendanceStatus === "NOT_CHECKED_IN" && (
+  <>
+    {!startVerification && (
+      <button
+        className="checkin-btn"
+        onClick={() => setStartVerification(true)}
+      >
+        Check In
+      </button>
+    )}
+
+    {startVerification && (
+      <div className="verification-card">
+        <h4 className="verification-title">Employee Verification</h4>
+
+        {/* FACE */}
+        <div className="verification-step">
+          <div className="step-header">
+            <span>Face Verification</span>
+            <span className={faceImage ? "status-success" : "status-pending"}>
+              {faceImage ? "Verified" : "Pending"}
+            </span>
+          </div>
+
+          {!faceImage && (
+            <CameraCapture onCapture={handleFaceCapture} />
+          )}
+        </div>
+
+        {/* LOCATION */}
+        <div className="verification-step">
+          <div className="step-header">
+            <span>Location Verification</span>
+            <span className={location ? "status-success" : "status-pending"}>
+              {location ? "Verified" : "Pending"}
+            </span>
+          </div>
+
+          {!location && (
+            <LocationCapture onLocation={handleLocationCapture} />
+          )}
+        </div>
+
+        <button
+          className="confirm-btn"
+          disabled={!faceImage || !location}
+          onClick={handleCheckIn}
+        >
+          Confirm Check-In
+        </button>
+      </div>
+    )}
+  </>
+)}
+
+        {faceImage && (
+          <img
+            src={faceImage}
+            alt="Captured Face"
+            width={150}
+            style={{ marginTop: "10px", borderRadius: "10px" }}
+          />
+        )}
         {attendanceStatus === "CHECKED_IN" && (
           <button onClick={handleCheckOut}>Check Out</button>
         )}

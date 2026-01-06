@@ -45,6 +45,7 @@ import ViewAttendance from "./employee/pages/ViewAttendance";
 import MyLeaves from "./employee/pages/MyLeaves";
 import ApplyLeave from "./employee/pages/ApplyLeave";
 import EmployeeSalary from "./employee/pages/EmployeeSalary";
+import RegisterFace from "./employee/pages/RegisterFace";
 
 // Admin
 import AdminLayout from "./admin/Layout/AdminLayout";
@@ -55,6 +56,7 @@ import EditEmployee from "./admin/Employees/EditEmployee";
 import AttendanceReport from "./admin/Attendance/AttendanceReport";
 import ExportReports from "./admin/Export/ExportReports";
 import ManageLeaves from "./admin/Leaves/ManageLeaves";
+import AdminSalaryReport from "./admin/Employees/AdminSalaryReport";
 
 function App() {
   return (
@@ -75,6 +77,7 @@ function App() {
         <Route path="attendance" element={<AttendanceReport />} />
         <Route path="export" element={<ExportReports />} />
         <Route path="manage-leaves" element={<ManageLeaves />} />
+        <Route path="salary-report" element={<AdminSalaryReport/>} />
       </Route>
        {/* EMPLOYEE ROUTES */}
     <Route path="/employee" element={<EmployeeLayout />}>
@@ -83,6 +86,7 @@ function App() {
     <Route path="my-leaves" element={<MyLeaves/>} />
     <Route path="apply" element={<ApplyLeave/>} />
     <Route path="salary" element={<EmployeeSalary />} />
+    <Route path="register-face" element={<RegisterFace />} />
 </Route>
 
     </Routes>

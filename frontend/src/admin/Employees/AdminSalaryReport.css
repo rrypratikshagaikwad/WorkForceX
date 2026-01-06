@@ -1,0 +1,41 @@
+.admin-salary-page {
+  padding: 20px;
+}
+
+.salary-filter {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.salary-filter select {
+  padding: 8px;
+}
+
+.salary-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+.salary-table th,
+.salary-table td {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+  text-align: center;
+}
+
+.salary-table th {
+  background: #5e58cf;
+}
+
+.salary-table .payable {
+  font-weight: bold;
+  color: green;
+}
+
+.salary-table a {
+  color: #1976d2;
+  text-decoration: none;
+  font-weight: 500;
+}

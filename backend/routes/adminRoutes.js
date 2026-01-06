@@ -28,6 +28,14 @@ router.put("/:id/status", authMiddleware, adminMiddleware, adminController.updat
 
 //salary
 router.get("/salary-report", authMiddleware, adminController.adminSalaryReport);
+router.post("/approve-salary",authMiddleware,adminMiddleware,adminController.approveSalary);
+router.get("/payslip",authMiddleware,adminMiddleware,adminController.downloadAdminPayslip
+);
 
+
+// // OFFICE REPORTS
+// router.get("/offices", adminController.getOffices);
+// router.get("/office-attendance",adminController.getOfficeAttendanceReport);
+// router.get("/office-summary",adminController.getMonthlyOfficeSummary);
 
 module.exports = router;
