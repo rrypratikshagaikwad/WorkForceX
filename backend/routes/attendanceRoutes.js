@@ -13,6 +13,7 @@ router.get("/my-leaves", authMiddleware, attendanceController.getMyLeaves);
 router.get("/monthly-summary", authMiddleware, attendanceController.getMonthlySummary);
 router.get("/salary/my-summary", authMiddleware, attendanceController.calculateSalary);
 router.get("/salary/payslip", authMiddleware, attendanceController.downloadPayslip);
+router.post("/register-face",authMiddleware, attendanceController.registerFace)
 
 
 module.exports = router;

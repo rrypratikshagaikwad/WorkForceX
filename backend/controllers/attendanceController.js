@@ -1,52 +1,123 @@
 const db = require("../config/db");
 const moment = require("moment");
 const sendSMS = require("../utils/sendSMS");
+const { getDistanceInMeters } = require("../utils/locationUtils");
 const PDFDocument = require("pdfkit");
-//CHECK IN
-// exports.checkIn = async (req, res) => {
-//   const employee_id = req.user.user_id;
+const { registerFace } = require("../utils/faceApi");
+const { verifyFace } = require("../utils/faceApi");
+const { detectOffice } = require("../utils/officeDetector");
 
+// exports.checkIn = async (req, res) => {
 //   try {
+//     const userId = req.user.user_id;
+//     const { faceImage, latitude, longitude } = req.body;
+
+//     /* -------------------- 1️⃣ Validate input -------------------- */
+//     if (!faceImage || latitude === undefined || longitude === undefined) {
+//       return res.status(400).json({
+//         message: "Face image and location are required"
+//       });
+//     }
+
+//     /* -------------------- 2️⃣ Office location check -------------------- */
+//     const officeLat = Number(process.env.OFFICE_LATITUDE);
+//     const officeLng = Number(process.env.OFFICE_LONGITUDE);
+//     const officeRadius = Number(process.env.OFFICE_RADIUS_METERS);
+
+//     const gpsDistance = getDistanceInMeters(
+//       officeLat,
+//       officeLng,
+//       latitude,
+//       longitude
+//     );
+
+//     console.log("📍 GPS distance:", gpsDistance, "meters");
+
+//     if (gpsDistance > officeRadius) {
+//       return res.status(403).json({
+//         message: "You are outside office location",
+//         distance: gpsDistance.toFixed(2)
+//       });
+//     }
+
+//     /* -------------------- 3️⃣ Get employee -------------------- */
+//     const [[employee]] = await db.query(
+//       `SELECT employee_id, face_embedding, face_registered
+//        FROM employee WHERE user_id = ?`,
+//       [userId]
+//     );
+
+//     if (!employee || !employee.face_registered) {
+//       return res.status(403).json({
+//         message: "Face not registered"
+//       });
+//     }
+
+//     /* -------------------- 4️⃣ Already checked in? -------------------- */
 //     const [existing] = await db.query(
-//       `SELECT * FROM attendance 
-//        WHERE employee_id = ? AND DATE(check_in_time) = CURDATE()`,
-//       [employee_id]
+//       `SELECT attendance_id
+//        FROM attendance
+//        WHERE employee_id = ?
+//        AND DATE(check_in_time) = CURDATE()`,
+//       [employee.employee_id]
 //     );
 
 //     if (existing.length > 0) {
-//       return res.status(400).json({ message: "Already checked in today" });
+//       return res.status(400).json({
+//         message: "Already checked in today"
+//       });
 //     }
 
+//     /* -------------------- 5️⃣ Face matching (Python API) -------------------- */
+
+// const storedEmbedding = JSON.parse(employee.face_embedding);
+
+// const faceResult = await verifyFace(faceImage, storedEmbedding);
+
+// if (!faceResult.matched) {
+//   return res.status(403).json({
+//     message: "Face verification failed"
+//   });
+// }
+
+// const faceDistance = faceResult.distance;
+
+
+//     /* -------------------- 6️⃣ Attendance Status Logic -------------------- */
 //     const now = new Date();
 //     const hour = now.getHours();
 //     const minute = now.getMinutes();
 
-//     let status = "PRESENT";
+//     let attendanceStatus = "PRESENT";
 
-//     // 10:20 logic
-//     if (hour === 10 && minute > 20 || hour === 11 && minute <= 0) {
-//       status = "LATE";
+//     if ((hour === 10 && minute > 20) || (hour === 11 && minute === 0)) {
+//       attendanceStatus = "LATE";
 //     }
 
-//     // after 11:00
 //     if (hour > 11 || (hour === 11 && minute > 0)) {
-//       status = "HALF_DAY";
+//       attendanceStatus = "HALF_DAY";
 //     }
 
+//     /* -------------------- 7️⃣ Insert attendance -------------------- */
 //     await db.query(
-//       `INSERT INTO attendance (employee_id, check_in_time, attendance_status)
-//        VALUES (?, NOW(), ?)`,
-//       [employee_id, status]
+//       `INSERT INTO attendance
+//        (employee_id, check_in_time, attendance_status,
+//         gps_latitude, gps_longitude, check_in_photo_url)
+//        VALUES (?, NOW(), ?, ?, ?, ?)`,
+//       [
+//         employee.employee_id,
+//         attendanceStatus,
+//         latitude,
+//         longitude,
+//         faceImage
+//       ]
 //     );
-
-//     //send SMS if late / half day
-//     if (status !== "PRESENT") {
-//       // sendSMS(employee_id, status);
-//     }
 
 //     res.json({
 //       message: "Check-in successful",
-//       status
+//       attendance_status: attendanceStatus,
+//       gps_distance: gpsDistance.toFixed(2),
+//       face_distance: faceDistance.toFixed(4)
 //     });
 
 //   } catch (err) {
@@ -55,51 +126,28 @@ const PDFDocument = require("pdfkit");
 //   }
 // };
 
-// exports.checkIn = async (req, res) => {
-//   const employeeId = req.user.user_id;
+//CHECK OUT
 
-//   const now = moment();
-//   const lateTime = moment("10:20", "HH:mm");
-//   const halfDayTime = moment("11:00", "HH:mm");
 
-//   let status = "PRESENT";
-
-//   if (now.isAfter(halfDayTime)) {
-//     status = "HALF_DAY";
-//   } else if (now.isAfter(lateTime)) {
-//     status = "LATE";
-//   }
-
-//   try {
-//     await db.query(
-//       `INSERT INTO attendance (employee_id, check_in_time, attendance_status)
-//        VALUES (?, NOW(), ?)`,
-//       [employeeId, status]
-//     );
-
-//     // 📱 SMS only for LATE / HALF_DAY
-//     if (status !== "PRESENT") {
-//       sendSMS(
-//         req.user.phone,
-//         `You are marked ${status} today. Please contact HR if needed.`
-//       );
-//     }
-
-//     res.json({ message: `Check-in successful (${status})` });
-
-//   } catch (err) {
-//     res.status(500).json({ message: "Check-in failed" });
-//   }
-// };
 exports.checkIn = async (req, res) => {
-  const userId = req.user.user_id;
-
   try {
-    // 1️⃣ Get employee from user_id
+    const userId = req.user.user_id;
+    const { faceImage, latitude, longitude } = req.body;
+
+    if (!faceImage || latitude == null || longitude == null) {
+      return res.status(400).json({
+        message: "Face image and location are required"
+      });
+    }
+
+    /* -------------------- Get employee + office -------------------- */
     const [[employee]] = await db.query(
-      `SELECT employee_id, phone, full_name
-       FROM employee
-       WHERE user_id = ?`,
+      `SELECT e.employee_id, e.face_embedding, e.face_registered,
+              o.office_id, o.latitude AS officeLat,
+              o.longitude AS officeLng, o.radius_meters
+       FROM employee e
+       JOIN office o ON e.office_id = o.office_id
+       WHERE e.user_id = ?`,
       [userId]
     );
 
@@ -107,33 +155,95 @@ exports.checkIn = async (req, res) => {
       return res.status(404).json({ message: "Employee not found" });
     }
 
-    const now = moment();
-    const lateTime = moment("10:20", "HH:mm");
-    const halfDayTime = moment("11:00", "HH:mm");
-
-    let status = "PRESENT";
-    if (now.isAfter(halfDayTime)) status = "HALF_DAY";
-    else if (now.isAfter(lateTime)) status = "LATE";
-
-    // 2️⃣ Insert correct employee_id
-    await db.query(
-      `INSERT INTO attendance
-       (employee_id, check_in_time, attendance_status)
-       VALUES (?, NOW(), ?)`,
-      [employee.employee_id, status]
-    );
-
-    // 3️⃣ Notify (SMS / Mail)
-    if (status !== "PRESENT") {
-      sendSMS(
-        employee.phone,
-        `Hi ${employee.full_name},
-You are marked ${status} today.
-- HR Team`
-      );
+    if (!employee.face_registered) {
+      return res.status(403).json({ message: "Face not registered" });
     }
 
-    res.json({ message: "Check-in successful", status });
+    /* -------------------- GPS check -------------------- */
+    const gpsDistance = getDistanceInMeters(
+      employee.officeLat,
+      employee.officeLng,
+      latitude,
+      longitude
+    );
+
+    if (gpsDistance > employee.radius_meters) {
+      return res.status(403).json({
+        message: "Outside office location",
+        distance: gpsDistance.toFixed(2)
+      });
+    }
+    // fetch all offices
+    const [offices] = await db.query(
+      `SELECT location_id, latitude, longitude, radius_meters
+      FROM location`
+    );
+
+    // auto detect
+    const office = detectOffice(latitude, longitude, offices);
+
+    if (!office) {
+      return res.status(403).json({
+        message: "You are not inside any office location"
+      });
+    }
+    /* -------------------- Already checked in? -------------------- */
+    const [existing] = await db.query(
+      `SELECT attendance_id
+       FROM attendance
+       WHERE employee_id = ?
+       AND DATE(check_in_time) = CURDATE()`,
+      [employee.employee_id]
+    );
+
+    if (existing.length > 0) {
+      return res.status(400).json({
+        message: "Already checked in today"
+      });
+    }
+
+    /* -------------------- Face verification -------------------- */
+    const storedEmbedding = JSON.parse(employee.face_embedding);
+    const faceResult = await verifyFace(faceImage, storedEmbedding);
+
+    if (!faceResult.matched) {
+      return res.status(403).json({
+        message: "Face verification failed"
+      });
+    }
+
+    /* -------------------- Attendance Status -------------------- */
+    const now = new Date();
+    const hour = now.getHours();
+    const minute = now.getMinutes();
+
+    let attendanceStatus = "PRESENT";
+    if (hour > 10 || (hour === 10 && minute > 20)) attendanceStatus = "LATE";
+    if (hour >= 11) attendanceStatus = "HALF_DAY";
+
+    /* -------------------- Insert attendance -------------------- */
+    await db.query(
+      `INSERT INTO attendance
+       (employee_id, office_id, check_in_time,
+        attendance_status, gps_latitude, gps_longitude,
+        check_in_photo_url)
+       VALUES (?, ?, NOW(), ?, ?, ?, ?)`,
+      [
+        employee.employee_id,
+        employee.office_id,
+        attendanceStatus,
+        latitude,
+        longitude,
+        faceImage
+      ]
+    );
+
+    res.json({
+      message: "Check-in successful",
+      attendance_status: attendanceStatus,
+      gps_distance: gpsDistance.toFixed(2),
+      face_distance: faceResult.distance.toFixed(4)
+    });
 
   } catch (err) {
     console.error(err);
@@ -141,60 +251,155 @@ You are marked ${status} today.
   }
 };
 
-//CHECK OUT
-exports.checkOut = async (req, res) => {
-  const employee_id = req.user.user_id;
 
+
+// exports.checkOut = async (req, res) => {
+//   try {
+//     const userId = req.user.user_id;
+//     const { faceImage, latitude, longitude } = req.body;
+
+//     if (!faceImage || latitude === undefined || longitude === undefined) {
+//       return res.status(400).json({ message: "Face & location required" });
+//     }
+
+//     const officeLat = Number(process.env.OFFICE_LATITUDE);
+//     const officeLng = Number(process.env.OFFICE_LONGITUDE);
+//     const officeRadius = Number(process.env.OFFICE_RADIUS_METERS);
+
+//     const gpsDistance = getDistanceInMeters(
+//       officeLat,
+//       officeLng,
+//       latitude,
+//       longitude
+//     );
+
+//     if (gpsDistance > officeRadius) {
+//       return res.status(403).json({
+//         message: "You are outside office location"
+//       });
+//     }
+//     // get employee
+//     const [[employee]] = await db.query(
+//       `SELECT employee_id, face_embedding
+//        FROM employee WHERE user_id = ?`,
+//       [userId]
+//     );
+
+//     /* -------------------- Face verification (Python API) -------------------- */
+
+// const storedEmbedding = JSON.parse(employee.face_embedding);
+
+// const faceResult = await verifyFace(faceImage, storedEmbedding);
+
+// if (!faceResult.matched) {
+//   return res.status(403).json({
+//     message: "Face verification failed"
+//   });
+// }
+
+
+//     // update attendance
+//     await db.query(
+//       `UPDATE attendance
+//        SET check_out_time = NOW(),
+//            check_out_photo_url = ?,
+//            gps_latitude = ?,
+//            gps_longitude = ?
+//        WHERE employee_id = ?
+//        AND DATE(check_in_time) = CURDATE()`,
+//       [faceImage, latitude, longitude, employee.employee_id]
+//     );
+
+//     res.json({ message: "Check-out successful" });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ message: "Check-out failed" });
+//   }
+// };
+
+
+exports.checkOut = async (req, res) => {
   try {
-    const [[attendance]] = await db.query(
-      `SELECT attendance_id FROM attendance
-       WHERE employee_id = ?
-       AND DATE(check_in_time) = CURDATE()
-       AND check_out_time IS NULL`,
-      [employee_id]
+    const userId = req.user.user_id;
+    const { faceImage, latitude, longitude } = req.body;
+
+    if (!faceImage || latitude == null || longitude == null) {
+      return res.status(400).json({ message: "Face & location required" });
+    }
+
+    const [[employee]] = await db.query(
+      `SELECT e.employee_id, e.face_embedding,
+              o.latitude AS officeLat,
+              o.longitude AS officeLng,
+              o.radius_meters
+       FROM employee e
+       JOIN office o ON e.office_id = o.office_id
+       WHERE e.user_id = ?`,
+      [userId]
     );
 
-    if (!attendance) {
-      return res.status(400).json({ message: "No active check-in found" });
+    const gpsDistance = getDistanceInMeters(
+      employee.officeLat,
+      employee.officeLng,
+      latitude,
+      longitude
+    );
+
+    if (gpsDistance > employee.radius_meters) {
+      return res.status(403).json({
+        message: "Outside office location"
+      });
+    }
+
+    const storedEmbedding = JSON.parse(employee.face_embedding);
+    const faceResult = await verifyFace(faceImage, storedEmbedding);
+
+    if (!faceResult.matched) {
+      return res.status(403).json({
+        message: "Face verification failed"
+      });
     }
 
     await db.query(
       `UPDATE attendance
-       SET check_out_time = NOW()
-       WHERE attendance_id = ?`,
-      [attendance.attendance_id]
+       SET check_out_time = NOW(),
+           check_out_photo_url = ?,
+           gps_latitude = ?,
+           gps_longitude = ?
+       WHERE employee_id = ?
+       AND DATE(check_in_time) = CURDATE()`,
+      [faceImage, latitude, longitude, employee.employee_id]
     );
 
     res.json({ message: "Check-out successful" });
+
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Check-out failed" });
   }
 };
 
 
-// GET TODAY STATUS
-// exports.getAttendanceStatus = async (req, res) => {
-//   const employeeId = req.user.user_id;
+exports.registerFace = async (req, res) => {
+  const userId = req.user.user_id;
+  const { faceImage } = req.body;
 
-//   const [[row]] = await db.query(
-//     `SELECT check_in_time, check_out_time
-//      FROM attendance
-//      WHERE employee_id = ?
-//      AND DATE(check_in_time) = CURDATE()
-//      LIMIT 1`,
-//     [employeeId]
-//   );
+  const result = await registerFace(faceImage);
 
-//   if (!row) {
-//     return res.json({ status: "NOT_CHECKED_IN" });
-//   }
+  if (!result.embedding) {
+    return res.status(400).json({ message: "Face not detected" });
+  }
 
-//   if (row.check_out_time) {
-//     return res.json({ status: "CHECKED_OUT" });
-//   }
+  await db.query(
+    `UPDATE employee
+     SET face_embedding = ?, face_registered = true
+     WHERE user_id = ?`,
+    [JSON.stringify(result.embedding), userId]
+  );
 
-//   return res.json({ status: "CHECKED_IN" });
-// };
+  res.json({ message: "Face registered successfully" });
+};
+
 exports.getAttendanceStatus = async (req, res) => {
   const userId = req.user.user_id;
 
@@ -230,23 +435,7 @@ exports.getAttendanceStatus = async (req, res) => {
 };
 
 
-// exports.getEmployeeAttendance = async (req, res) => {
-//   const employeeId = req.user.user_id;
-//  const [rows] = await db.query(
-//   `SELECT 
-//      DATE_FORMAT(check_in_time, '%Y-%m-%d') AS date,
-//      TIME_FORMAT(check_in_time, '%H:%i') AS check_in,
-//      TIME_FORMAT(check_out_time, '%H:%i') AS check_out,
-//      attendance_status AS status
-//    FROM attendance
-//    WHERE employee_id = ?
-//    ORDER BY check_in_time DESC`,
-//   [employeeId]
-// );
 
-
-//   res.json(rows);
-// };
 exports.getEmployeeAttendance = async (req, res) => {
   const userId = req.user.user_id;
 
@@ -354,7 +543,7 @@ exports.getMonthlySummary = async (req, res) => {
 
   try {
     //Step 1: user_id → employee_id
-    const [[employee]] = await db.query(
+    const [[employee]] = await db.query( 
       `SELECT employee_id FROM employee WHERE user_id = ?`,
       [userId]
     );

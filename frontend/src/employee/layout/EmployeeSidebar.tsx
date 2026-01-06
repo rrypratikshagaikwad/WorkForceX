@@ -23,6 +23,7 @@ const year = today.getFullYear();
         <NavLink to={`/employee/salary?month=${month}&year=${year}`}>
   Salary
 </NavLink>
+<NavLink to="/employee/register-face">Register Face</NavLink>
       </nav>
 
       <button className="logout-btn" onClick={logout}>

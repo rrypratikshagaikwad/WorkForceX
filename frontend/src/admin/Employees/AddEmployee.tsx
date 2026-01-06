@@ -5,23 +5,68 @@ import { useNavigate } from "react-router-dom";
 
 const AddEmployee = () => {
   const navigate = useNavigate();
+interface ReferenceContact {
+  name: string;
+  phone: string;
+  address: string;
+  relation: string;
+}
+const [formData, setFormData] = useState<{
+  full_name: string;
+  email: string;
+  password: string;
+  phone: string;
+  designation: string;
+  department: string;
+  work_location: string;
+  employee_type: string;
+  shift_hours: string;
+  joining_date: string;
+  blood_group: string;
+  permanent_address: string;
+  reference_contacts: ReferenceContact[];
+}>({
+  full_name: "",
+  email: "",
+  password: "",
+  phone: "",
+  designation: "",
+  department: "",
+  work_location: "",
+  employee_type: "",
+  shift_hours: "",
+  joining_date: "",
+  blood_group: "",
+  permanent_address: "",
+  reference_contacts: [
+    { name: "", phone: "", address: "", relation: "" },
+    { name: "", phone: "", address: "", relation: "" }
+  ]
+});
 
-  const [formData, setFormData] = useState({
-    full_name: "",
-    email: "",
-    password: "",
-    phone: "",
-    designation: "",
-    department: "",
-    work_location: "",
-    employee_type: "",
-    shift_hours: "",
-    joining_date: ""
-  });
-
+  // 🔹 Normal input handler
   const handleChange = (e: any) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
+
+  // 🔹 Reference contact handler
+
+const handleReferenceChange = (
+  index: number,
+  field: keyof ReferenceContact,
+  value: string
+) => {
+  const updatedRefs = [...formData.reference_contacts];
+  updatedRefs[index] = {
+    ...updatedRefs[index],
+    [field]: value
+  };
+
+  setFormData({
+    ...formData,
+    reference_contacts: updatedRefs
+  });
+};
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
@@ -44,7 +89,6 @@ const AddEmployee = () => {
     }
 
     toast.success("Employee added successfully");
-
     setTimeout(() => navigate("/admin/dashboard"), 1200);
   };
 
@@ -54,6 +98,7 @@ const AddEmployee = () => {
 
       <form onSubmit={handleSubmit} className="employee-form">
 
+        {/* BASIC DETAILS */}
         <div className="form-row">
           <input name="full_name" placeholder="Full Name" onChange={handleChange} required />
           <input type="email" name="email" placeholder="Email" onChange={handleChange} required />
@@ -68,16 +113,15 @@ const AddEmployee = () => {
           <input name="designation" placeholder="Designation" onChange={handleChange} required />
           <select name="department" onChange={handleChange} required>
             <option value="">Department</option>
-            <option value="Office">IT</option>
-            <option value="Office">Account</option>
-            <option value="Field">Solar</option>
-            <option value="Remote">Civil</option>
+            <option value="IT">IT</option>
+            <option value="Account">Account</option>
+            <option value="Solar">Solar</option>
+            <option value="Civil">Civil</option>
           </select>
         </div>
 
         <div className="form-row">
           <input name="work_location" placeholder="Work Location" onChange={handleChange} required />
-
           <select name="employee_type" onChange={handleChange} required>
             <option value="">Employee Type</option>
             <option value="Office">Office</option>
@@ -88,6 +132,61 @@ const AddEmployee = () => {
         <div className="form-row">
           <input name="shift_hours" placeholder="Shift Hours (10AM - 6PM)" onChange={handleChange} required />
           <input type="date" name="joining_date" onChange={handleChange} />
+        </div>
+
+        {/* 🩸 BLOOD GROUP */}
+        <div className="form-row">
+          <select name="blood_group" onChange={handleChange} required>
+            <option value="">Blood Group</option>
+            <option value="A+">A+</option>
+            <option value="A-">A-</option>
+            <option value="B+">B+</option>
+            <option value="B-">B-</option>
+            <option value="O+">O+</option>
+            <option value="O-">O-</option>
+            <option value="AB+">AB+</option>
+            <option value="AB-">AB-</option>
+          </select>
+        </div>
+
+        {/* 🏠 PERMANENT ADDRESS */}
+        <div className="form-row">
+          <textarea
+            name="permanent_address"
+            placeholder="Permanent Address"
+            onChange={handleChange}
+            rows={3}
+            required
+          />
+        </div>
+
+        {/* 📞 REFERENCE CONTACTS */}
+        <h4>Reference Contact 1</h4>
+        <div className="form-row">
+          <input placeholder="Name"
+            onChange={(e) => handleReferenceChange(0, "name", e.target.value)} />
+          <input placeholder="Phone"
+            onChange={(e) => handleReferenceChange(0, "phone", e.target.value)} />
+        </div>
+        <div className="form-row">
+          <input placeholder="Relation"
+            onChange={(e) => handleReferenceChange(0, "relation", e.target.value)} />
+          <input placeholder="Address"
+            onChange={(e) => handleReferenceChange(0, "address", e.target.value)} />
+        </div>
+
+        <h4>Reference Contact 2</h4>
+        <div className="form-row">
+          <input placeholder="Name"
+            onChange={(e) => handleReferenceChange(1, "name", e.target.value)} />
+          <input placeholder="Phone"
+            onChange={(e) => handleReferenceChange(1, "phone", e.target.value)} />
+        </div>
+        <div className="form-row">
+          <input placeholder="Relation"
+            onChange={(e) => handleReferenceChange(1, "relation", e.target.value)} />
+          <input placeholder="Address"
+            onChange={(e) => handleReferenceChange(1, "address", e.target.value)} />
         </div>
 
         <button type="submit" className="submit-btn">

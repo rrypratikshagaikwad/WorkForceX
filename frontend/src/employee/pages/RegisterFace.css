@@ -1,0 +1,47 @@
+.register-face-page {
+  max-width: 500px;
+  margin: auto;
+  background: #ffffff;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.register-face-page h2 {
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.info {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 15px;
+}
+
+.preview {
+  margin-top: 15px;
+}
+
+.preview img {
+  width: 150px;
+  border-radius: 10px;
+  border: 2px solid #4caf50;
+}
+
+.register-btn {
+  margin-top: 20px;
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  border: none;
+  border-radius: 8px;
+  background: #4caf50;
+  color: white;
+  cursor: pointer;
+}
+
+.register-btn:disabled {
+  background: #9e9e9e;
+  cursor: not-allowed;
+}
