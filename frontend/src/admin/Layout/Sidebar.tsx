@@ -4,7 +4,14 @@ import "./Sidebar.css";
 const Sidebar = () => {
   return (
     <div className="sidebar">
-      <h2 className="logo">WorkForceX</h2>
+        {/* LOGO SECTION */}
+      <div className="sidebar-logo">
+        <img
+          src="/icons/RRY_LOGO.png"
+          alt="RRY Logo"
+        />
+        <h2>WorkForceX</h2>
+      </div>
 
       <nav>
         <NavLink to="/admin/dashboard">Dashboard</NavLink>

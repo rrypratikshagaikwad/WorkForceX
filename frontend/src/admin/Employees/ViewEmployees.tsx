@@ -124,9 +124,19 @@ const deactivateEmployee = async (id: number) => {
       >
           <option value="">All Departments</option>
           <option value="IT">IT</option>
-          <option value="HR">HR</option>
-          <option value="Civil">Civil</option>
-          <option value="Account">Account</option>
+            <option value="Account">Account</option>
+            <option value="Solar">Solar</option>
+            <option value="Civil">Civil</option>
+            <option value="RMC Head">RMC Head</option>
+            <option value="Manager">Manager</option>
+            <option value="Vehicle">Vehicle</option>
+            <option value="RMC">RMC</option>
+            <option value="Operation">Operation</option>
+            <option value="Collection">Collection</option>
+            <option value="Office">Office</option>
+            <option value="Design Studio">Design Studio</option>
+            <option value="QA/QC">QA/QC</option>
+            <option value="Infra">Infra</option>
         </select>
 
         <select

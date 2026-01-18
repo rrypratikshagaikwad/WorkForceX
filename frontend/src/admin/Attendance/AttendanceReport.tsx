@@ -89,6 +89,7 @@ useEffect(() => {
           <option value="HR">HR</option>
           <option value="Account">Account</option>
           <option value="Civil">Civil</option>
+           <option value="Solar">Solar</option>
         </select>
         {/* <select value={officeId} onChange={e => setOfficeId(e.target.value)}>
           <option value="">All Offices</option>

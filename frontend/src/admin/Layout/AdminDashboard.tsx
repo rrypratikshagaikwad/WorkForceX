@@ -11,33 +11,7 @@ const [attendanceTrend, setAttendanceTrend] = useState([]);
 const [todayStatus, setTodayStatus] = useState([]);
 const [departmentData, setDepartmentData] = useState([]);
 
-  // const kpiData = {
-  //   totalEmployees: 120,
-  //   presentToday: 95,
-  //   absentToday: 15,
-  //   onLeave: 10
-  // };
-
-  // const attendanceTrend = [
-  //   { day: "Mon", present: 90 },
-  //   { day: "Tue", present: 92 },
-  //   { day: "Wed", present: 88 },
-  //   { day: "Thu", present: 94 },
-  //   { day: "Fri", present: 95 },
-  // ];
-
-  // const todayStatus = [
-  //   { name: "Present", value: 95 },
-  //   { name: "Absent", value: 15 },
-  //   { name: "On Leave", value: 10 },
-  // ];
-
-  // const departmentData = [
-  //   { department: "IT", employees: 40 },
-  //   { department: "HR", employees: 20 },
-  //   { department: "Sales", employees: 35 },
-  //   { department: "Production", employees: 25 },
-  // ];
+  
 
   const COLORS = ["#4CAF50", "#F44336", "#FFC107"];
 useEffect(() => {
@@ -48,7 +22,7 @@ useEffect(() => {
   };
 
   fetch("http://localhost:5000/admin/dashboard/kpis", { headers })
-    .then(res => res.json())
+    .then(res => res.json())                                    
     .then(setKpiData);
 
   fetch("http://localhost:5000/admin/dashboard/weekly-attendance", { headers })

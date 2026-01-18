@@ -219,28 +219,24 @@ UNLOCK TABLES;
 -- Table structure for table `locations`
 --
 
-DROP TABLE IF EXISTS `locations`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `locations` (
-  `id` int NOT NULL AUTO_INCREMENT,
+DROP TABLE IF EXISTS `location`;
+CREATE TABLE `location` (
+  `location_id` int NOT NULL AUTO_INCREMENT,
   `name` varchar(100) DEFAULT NULL,
   `type` enum('OFFICE','PLANT') DEFAULT NULL,
-  `latitude` decimal(10,7) DEFAULT NULL,
-  `longitude` decimal(10,7) DEFAULT NULL,
-  `allowed_radius` int DEFAULT '100',
-  `status` tinyint DEFAULT '1',
-  PRIMARY KEY (`id`)
+  `latitude` decimal(10,8) DEFAULT NULL,
+  `longitude` decimal(11,8) DEFAULT NULL,
+  `radius_meters` int DEFAULT NULL,
+  `status` enum('active','inactive') DEFAULT 'active',
+  PRIMARY KEY (`location_id`)
 ) ENGINE=MyISAM AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
 --
 -- Dumping data for table `locations`
 --
 
-LOCK TABLES `locations` WRITE;
+LOCK TABLES `location` WRITE;
 /*!40000 ALTER TABLE `locations` DISABLE KEYS */;
-INSERT INTO `locations` VALUES (1,'Lakshmi Clave','OFFICE',20.0040802,73.7776342,100,1),(2,'Bhaskar Adroit','OFFICE',20.0029646,73.7772753,100,1);
+INSERT INTO `location` VALUES (1,'Lakshmi Clave','OFFICE',20.00404400,73.77762400,150,'active'),(2,'Bhaskar Adroit','OFFICE',20.00335500,73.77733800,150,'active');
 /*!40000 ALTER TABLE `locations` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -368,3 +364,48 @@ UNLOCK TABLES;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 -- Dump completed on 2026-01-07 12:35:52
+
+/*17-01-26*/
+CREATE TABLE department (
+  department_id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(50) UNIQUE
+);
+INSERT INTO department (name)
+VALUES
+('Solar'), ('Account'), ('IT'), ('RMC Head'),
+('RMC'), ('Collection'), ('Office'),
+('Purchase'), ('Design Studio'),
+('QA/QC'), ('Infra'), ('Vehicle');
+
+CREATE TABLE department_location (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  department_id INT,
+  location_id INT,
+  FOREIGN KEY (department_id) REFERENCES department(department_id),
+  FOREIGN KEY (location_id) REFERENCES location(location_id)
+);
+
+ALTER TABLE employee
+ADD department_id INT,
+ADD FOREIGN KEY (department_id)
+REFERENCES department(department_id);
+
+ALTER TABLE department
+ADD COLUMN is_roaming TINYINT(1) DEFAULT 0;
+
+ALTER TABLE attendance
+ADD COLUMN location_id INT;
+
+CREATE TABLE shift (
+  shift_id INT PRIMARY KEY AUTO_INCREMENT,
+  shift_name VARCHAR(50),          -- General / Driver / Night
+  start_time TIME,                 -- 08:00:00
+  end_time TIME,                   -- 17:00:00 or 20:00:00
+  full_day_hours DECIMAL(5,2),      -- 8.00 / 12.00
+  half_day_hours DECIMAL(5,2),      -- 4.00 / 6.00
+  ot_allowed TINYINT(1) DEFAULT 0,  -- 1 = yes
+  max_ot_hours DECIMAL(5,2) DEFAULT 0
+);
+ALTER TABLE employee
+ADD shift_id INT,
+ADD FOREIGN KEY (shift_id) REFERENCES shift(shift_id);

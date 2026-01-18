@@ -39,3 +39,44 @@ button.cancel {
   border: none;
   border-radius: 4px;
 }
+.edit-form textarea {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+}
+
+/* ===== SECTION HEADINGS ===== */
+.edit-form h3 {
+  margin-top: 20px;
+  margin-bottom: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+/* ===== REFERENCE CONTACT BOX ===== */
+.reference-box {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  background: #f9f9f9;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+}
+
+/* Full width fields (Address / Relation if needed) */
+.reference-box input:nth-child(3),
+.reference-box input:nth-child(4) {
+  grid-column: span 2;
+}
+
+/* ===== MOBILE RESPONSIVE ===== */
+@media (max-width: 600px) {
+  .reference-box {
+    grid-template-columns: 1fr;
+  }
+}

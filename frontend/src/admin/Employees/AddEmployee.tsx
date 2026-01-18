@@ -117,6 +117,16 @@ const handleReferenceChange = (
             <option value="Account">Account</option>
             <option value="Solar">Solar</option>
             <option value="Civil">Civil</option>
+            <option value="RMC Head">RMC Head</option>
+            <option value="Manager">Manager</option>
+            <option value="Vehicle">Vehicle</option>
+            <option value="RMC">RMC</option>
+            <option value="Operation">Operation</option>
+            <option value="Collection">Collection</option>
+            <option value="Office">Office</option>
+            <option value="Design Studio">Design Studio</option>
+            <option value="QA/QC">QA/QC</option>
+            <option value="Infra">Infra</option>
           </select>
         </div>
 
@@ -124,8 +134,11 @@ const handleReferenceChange = (
           <input name="work_location" placeholder="Work Location" onChange={handleChange} required />
           <select name="employee_type" onChange={handleChange} required>
             <option value="">Employee Type</option>
-            <option value="Office">Office</option>
-            <option value="Field">Field</option>
+            <option value="Head-Office">Head-Office</option>
+             <option value="IT-Office">IT-Office</option>
+             <option value="Plant-1">Plant 1</option>
+             <option value="Plant-2">Plant 2</option>
+             <option value="Field">Field</option>
           </select>
         </div>
 

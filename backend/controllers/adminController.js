@@ -251,19 +251,11 @@ exports.getEmployeeById = async (req, res) => {
 
   try {
     const [[employee]] = await db.query(
-      `
-      SELECT 
-        e.employee_id,
-        e.full_name,
-        e.designation,
-        e.department,
-        e.phone,
-        e.work_location,
-        e.employee_type,
-        e.status
-      FROM employee e
-      WHERE e.employee_id = ?
-      `,
+      `SELECT employee_id, full_name, designation, department, phone,
+              work_location, employee_type, status,
+              blood_group, permanent_address
+       FROM employee
+       WHERE employee_id = ?`,
       [id]
     );
 
@@ -271,7 +263,18 @@ exports.getEmployeeById = async (req, res) => {
       return res.status(404).json({ message: "Employee not found" });
     }
 
-    res.json(employee);
+    const [references] = await db.query(
+      `SELECT reference_id, name, phone, address, relation
+       FROM employee_reference
+       WHERE employee_id = ?`,
+      [id]
+    );
+
+    res.json({
+      ...employee,
+      reference_contacts: references
+    });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Failed to fetch employee" });
@@ -288,23 +291,30 @@ exports.updateEmployee = async (req, res) => {
     phone,
     work_location,
     employee_type,
-    status
+    status,
+    blood_group,
+    permanent_address,
+    reference_contacts
   } = req.body;
 
+  const connection = await db.getConnection();
+
   try {
-    await db.query(
-      `
-      UPDATE employee
-      SET 
+    await connection.beginTransaction();
+
+    // 1️⃣ Update employee
+    await connection.query(
+      `UPDATE employee SET
         full_name = ?,
         designation = ?,
         department = ?,
         phone = ?,
         work_location = ?,
         employee_type = ?,
-        status = ?
-      WHERE employee_id = ?
-      `,
+        status = ?,
+        blood_group = ?,
+        permanent_address = ?
+       WHERE employee_id = ?`,
       [
         full_name,
         designation,
@@ -313,15 +323,42 @@ exports.updateEmployee = async (req, res) => {
         work_location,
         employee_type,
         status,
+        blood_group,
+        permanent_address,
         id
       ]
     );
 
+    // 2️⃣ Update reference contacts
+    if (Array.isArray(reference_contacts)) {
+      for (const ref of reference_contacts) {
+        if (ref.reference_id) {
+          await connection.query(
+            `UPDATE employee_reference
+             SET name=?, phone=?, address=?, relation=?
+             WHERE reference_id=?`,
+            [
+              ref.name,
+              ref.phone,
+              ref.address,
+              ref.relation,
+              ref.reference_id
+            ]
+          );
+        }
+      }
+    }
+
+    await connection.commit();
     res.json({ message: "Employee updated successfully" });
 
   } catch (err) {
+    await connection.rollback();
     console.error(err);
     res.status(500).json({ message: "Failed to update employee" });
+
+  } finally {
+    connection.release();
   }
 };
 
@@ -351,7 +388,6 @@ exports.deactivateEmployee = async (req, res) => {
   }
 };
 
-
 //Admin Dashboard
 exports.getKPIs = async (req, res) => {
   try {
@@ -359,39 +395,143 @@ exports.getKPIs = async (req, res) => {
       "SELECT COUNT(*) AS total FROM employee"
     );
 
-    const [[present]] = await db.query(
-      "SELECT COUNT(DISTINCT employee_id) AS present FROM attendance WHERE DATE(check_in_time) = CURDATE()"
-    );
-
-    const [[onLeave]] = await db.query(
-      `SELECT COUNT(*) AS onLeave
-       FROM leave_request
-       WHERE status = 'approved'
-       AND CURDATE() BETWEEN start_date AND end_date`
-    );
-
-    res.json({
-      totalEmployees: total.total,
-      presentToday: present.present,
-      absentToday: total.total - present.present - onLeave.onLeave,
-      onLeave: onLeave.onLeave
-    });
+          const [[present]] = await db.query(
+          `SELECT COUNT(DISTINCT employee_id) AS present
+          FROM attendance
+          WHERE DATE(check_in_time) = CURDATE()
+          AND attendance_status IN ('PRESENT', 'LATE', 'HALF_DAY')`
+        );
+        
+        const [[halfDay]] = await db.query(
+          `SELECT COUNT(DISTINCT employee_id) AS halfDay
+          FROM attendance
+          WHERE DATE(check_in_time) = CURDATE()
+          AND attendance_status = 'HALF_DAY'`
+        );
+        const [[onLeave]] = await db.query(
+          `SELECT COUNT(*) AS onLeave
+          FROM leave_request
+          WHERE status = 'approved'
+          AND CURDATE() BETWEEN start_date AND end_date`
+        );
+      const [[absent]] = await db.query(`
+        SELECT COUNT(*) AS absent
+        FROM employee e
+        WHERE e.employee_id NOT IN (
+          SELECT employee_id
+          FROM attendance
+          WHERE DATE(check_in_time) = CURDATE()
+        )
+      `);
+          res.json({
+        totalEmployees: total.total,
+        presentToday: present.present,
+        absentToday: absent.absent,
+        onLeave: onLeave.onLeave
+      });
 
   } catch (err) {
     res.status(500).json({ message: "Failed to load KPI data" });
   }
 };
+// exports.getKPIs = async (req, res) => {
+//   try {
+//     const [[total]] = await db.query(
+//       "SELECT COUNT(*) AS total FROM employee WHERE status='active'"
+//     );
 
+//     const [[present]] = await db.query(
+//       `SELECT COUNT(DISTINCT employee_id) AS present
+//        FROM attendance
+//        WHERE DATE(check_in_time) = CURDATE()
+//        AND attendance_status IN ('PRESENT', 'LATE')`
+//     );
+
+//     const [[halfDay]] = await db.query(
+//       `SELECT COUNT(DISTINCT employee_id) AS halfDay
+//        FROM attendance
+//        WHERE DATE(check_in_time) = CURDATE()
+//        AND attendance_status = 'HALF_DAY'`
+//     );
+
+//     const [[onLeave]] = await db.query(
+//       `SELECT COUNT(DISTINCT employee_id) AS onLeave
+//        FROM leave_request
+//        WHERE status = 'approved'
+//        AND CURDATE() BETWEEN start_date AND end_date`
+//     );
+
+//     const [[absent]] = await db.query(
+//       `SELECT COUNT(DISTINCT employee_id) AS absent
+//        FROM attendance
+//        WHERE DATE(check_in_time) = CURDATE()
+//        AND attendance_status = 'ABSENT'`
+//     );
+
+//     res.json({
+//       totalEmployees: total.total,
+//       presentToday: present.present,
+//       halfDayToday: halfDay.halfDay,
+//       absentToday: absent.absent,
+//       onLeave: onLeave.onLeave
+//     });
+
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ message: "Failed to load KPI data" });
+//   }
+// };
 
 // WEEKLY LINE CHART
+// exports.getWeeklyAttendance = async (req, res) => {
+//   try {
+//     const [rows] = await db.query(`
+//       SELECT 
+//         DAYNAME(check_in_time) AS day,
+//         COUNT(DISTINCT employee_id) AS present
+//       FROM attendance
+//       WHERE check_in_time >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+//       GROUP BY DATE(check_in_time)
+//       ORDER BY DATE(check_in_time)
+//     `);
+
+//     res.json(rows);
+//   } catch (err) {
+//     res.status(500).json({ message: "Failed to load weekly attendance" });
+//   }
+// };
+// exports.getWeeklyAttendance = async (req, res) => {
+//   try {
+//     const [rows] = await db.query(`
+//       SELECT 
+//         DAYNAME(check_in_time) AS day,
+//         COUNT(DISTINCT employee_id) AS present
+//       FROM attendance
+//       WHERE check_in_time >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+//       AND attendance_status IN ('PRESENT', 'LATE')
+//       GROUP BY DATE(check_in_time)
+//       ORDER BY DATE(check_in_time)
+//     `);
+
+//     res.json(rows);
+//   } catch (err) {
+//     res.status(500).json({ message: "Failed to load weekly attendance" });
+//   }
+// };
+
+// TODAY PIE CHART
+
 exports.getWeeklyAttendance = async (req, res) => {
   try {
     const [rows] = await db.query(`
-      SELECT 
+      SELECT
+        DATE(check_in_time) AS date,
         DAYNAME(check_in_time) AS day,
         COUNT(DISTINCT employee_id) AS present
       FROM attendance
-      WHERE check_in_time >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+      WHERE DATE(check_in_time) BETWEEN
+        DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND CURDATE()
+      AND attendance_status IN ('PRESENT', 'LATE', 'HALF_DAY')
       GROUP BY DATE(check_in_time)
       ORDER BY DATE(check_in_time)
     `);
@@ -403,7 +543,6 @@ exports.getWeeklyAttendance = async (req, res) => {
 };
 
 
-// TODAY PIE CHART
 exports.getTodayStatus = async (req, res) => {
   try {
     const [[present]] = await db.query(

@@ -1,27 +1,28 @@
 const { getDistanceInMeters } = require("./locationUtils");
 
-function detectOffice(userLat, userLng, offices) {
-  let nearestOffice = null;
+function detectLocation(userLat, userLng, locations) {
+  let nearest = null;
   let minDistance = Infinity;
 
-  for (const office of offices) {
+  for (const loc of locations) {
     const distance = getDistanceInMeters(
-      office.latitude,
-      office.longitude,
-      userLat,
-      userLng
+      Number(loc.latitude),
+      Number(loc.longitude),
+      Number(userLat),
+      Number(userLng)
     );
 
-    if (distance <= office.radius_meters && distance < minDistance) {
+    console.log(
+      `📍 ${loc.name} → ${distance.toFixed(2)}m (allowed ${loc.radius_meters}m)`
+    );
+
+    if (distance <= loc.radius_meters && distance < minDistance) {
       minDistance = distance;
-      nearestOffice = {
-        ...office,
-        distance
-      };
+      nearest = { ...loc, distance };
     }
   }
 
-  return nearestOffice;
+  return nearest;
 }
 
-module.exports = { detectOffice };
+module.exports = { detectLocation };

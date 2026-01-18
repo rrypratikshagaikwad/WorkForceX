@@ -25,6 +25,18 @@
   border: 1px solid #ccc;
 }
 
+.form-row textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  resize: vertical;         
+  min-height: 90px;
+  font-family: inherit;
+  grid-column: span 2;       
+}
+
+
 .submit-btn {
   margin-top: 15px;
   padding: 12px;
