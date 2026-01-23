@@ -2,7 +2,10 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import "./EditEmployee.css";
-
+import {
+  getEmployeeById,
+  updateEmployee
+} from "../../api/adminApi";
 interface ReferenceContact {
   reference_id?: number;
   name: string;
@@ -47,34 +50,43 @@ const EditEmployee = () => {
     fetchEmployee();
   }, []);
 
-  const fetchEmployee = async () => {
-    try {
-      const token = localStorage.getItem("token");
+  // const fetchEmployee = async () => {
+  //   try {
+  //     const token = localStorage.getItem("token");
 
-      const res = await fetch(
-        `http://localhost:5000/admin/employees/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
+  //     const res = await fetch(
+  //       `http://localhost:5000/admin/employees/${id}`,
+  //       {
+  //         headers: {
+  //           Authorization: `Bearer ${token}`
+  //         }
+  //       }
+  //     );
 
-      const data = await res.json();
+  //     const data = await res.json();
 
-      if (!res.ok) {
-        toast.error(data.message || "Failed to load employee");
-        return;
-      }
+  //     if (!res.ok) {
+  //       toast.error(data.message || "Failed to load employee");
+  //       return;
+  //     }
 
-      setEmployee(data);
-    } catch {
-      toast.error("Server error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  //     setEmployee(data);
+  //   } catch {
+  //     toast.error("Server error");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+const fetchEmployee = async () => {
+  try {
+    const res = await getEmployeeById(id!);
+    setEmployee(res.data);
+  } catch (err: any) {
+    toast.error(err.response?.data?.message || "Failed to load employee");
+  } finally {
+    setLoading(false);
+  }
+};
   /* ================= HANDLE CHANGE ================= */
 const handleChange = (
   e: React.ChangeEvent<
@@ -100,41 +112,51 @@ const handleReferenceChange = (
   });
 };
   /* ================= UPDATE EMPLOYEE ================= */
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
 
-    try {
-      const token = localStorage.getItem("token");
+  //   try {
+  //     const token = localStorage.getItem("token");
 
-      const res = await fetch(
-        `http://localhost:5000/admin/employees/${id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify(employee)
-        }
-      );
+  //     const res = await fetch(
+  //       `http://localhost:5000/admin/employees/${id}`,
+  //       {
+  //         method: "PUT",
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //           Authorization: `Bearer ${token}`
+  //         },
+  //         body: JSON.stringify(employee)
+  //       }
+  //     );
 
-      const data = await res.json();
+  //     const data = await res.json();
 
-      if (!res.ok) {
-        toast.error(data.message || "Update failed");
-        return;
-      }
+  //     if (!res.ok) {
+  //       toast.error(data.message || "Update failed");
+  //       return;
+  //     }
 
-      toast.success("Employee updated successfully");
+  //     toast.success("Employee updated successfully");
 
-      setTimeout(() => {
-        navigate("/admin/employees");
-      }, 1200);
+  //     setTimeout(() => {
+  //       navigate("/admin/employees");
+  //     }, 1200);
 
-    } catch {
-      toast.error("Server error");
-    }
-  };
+  //   } catch {
+  //     toast.error("Server error");
+  //   }
+  // };
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  try {
+    await updateEmployee(id!, employee);
+    toast.success("Employee updated successfully");
+    navigate("/admin/employees");
+  } catch (err: any) {
+    toast.error(err.response?.data?.message || "Update failed");
+  }
+};
 
   if (loading) return <p className="loading">Loading employee...</p>;
 
@@ -231,7 +253,6 @@ const handleReferenceChange = (
         </select>
 
   <h3>Reference Contacts</h3>
-
     {employee.reference_contacts.map((ref, index) => (
       <div key={index} className="reference-box">
         <input
@@ -250,21 +271,21 @@ const handleReferenceChange = (
           }
         />  
 
-    <input
-      placeholder="Relation"
-      value={ref.relation}
-      onChange={(e) =>
-        handleReferenceChange(index, "relation", e.target.value)
-      }
-    />
+        <input
+          placeholder="Relation"
+          value={ref.relation}
+          onChange={(e) =>
+            handleReferenceChange(index, "relation", e.target.value)
+          }
+        />
 
-    <input
-      placeholder="Address"
-      value={ref.address}
-      onChange={(e) =>
-        handleReferenceChange(index, "address", e.target.value)
-      }
-    />
+        <input
+          placeholder="Address"
+          value={ref.address}
+          onChange={(e) =>
+            handleReferenceChange(index, "address", e.target.value)
+          }
+        />
   </div>
 ))}
         <div className="form-actions">

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import "./ViewAttendance.css";
-
+import { toast } from "react-toastify";
+import { getMyAttendance } from "../../api/attendanceApi";
 interface Attendance {
   date: string;
   check_in: string;
@@ -12,19 +13,26 @@ const ViewAttendance = () => {
   const [records, setRecords] = useState<Attendance[]>([]);
 
 useEffect(() => {
-  const fetchAttendance = async () => {
-    const token = localStorage.getItem("token");
+  // const fetchAttendance = async () => {
+  //   const token = localStorage.getItem("token");
 
-    const res = await fetch("http://localhost:5000/attendance/employee", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+  //   const res = await fetch("http://localhost:5000/attendance/employee", {
+  //     headers: {
+  //       Authorization: `Bearer ${token}`,
+  //     },
+  //   });
 
-    const data = await res.json();
-    setRecords(data);
+  //   const data = await res.json();
+  //   setRecords(data);
+  // };
+ const fetchAttendance = async () => {
+    try {
+      const res = await getMyAttendance();
+      setRecords(res.data);
+    } catch (err) {
+      toast.error("Failed to load attendance");
+    }
   };
-
   fetchAttendance();
 }, []);
 

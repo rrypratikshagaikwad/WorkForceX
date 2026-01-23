@@ -409,3 +409,16 @@ CREATE TABLE shift (
 ALTER TABLE employee
 ADD shift_id INT,
 ADD FOREIGN KEY (shift_id) REFERENCES shift(shift_id);
+22-01-26
+ALTER TABLE attendance
+ADD COLUMN attendance_date DATE AFTER employee_id;
+
+UPDATE attendance
+SET attendance_date = DATE(check_in_time)
+WHERE attendance_date IS NULL;
+
+ALTER TABLE attendance 
+MODIFY  attendance_date DATE NOT NULL;
+
+ALTER TABLE attendance 
+ADD UNIQUE KEY uniq_employee_day (employee_id, attendance_date);

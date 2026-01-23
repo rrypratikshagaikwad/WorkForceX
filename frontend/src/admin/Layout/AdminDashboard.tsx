@@ -4,40 +4,45 @@ import {
   BarChart, Bar, Legend
 } from "recharts";
 import "./AdminDashboard.css";
+import { toast } from "react-toastify";
 import { useEffect, useState } from "react";
+import {
+  getAdminKPIs,
+  getWeeklyAttendance,
+  getTodayStatusAdmin,
+  getDepartmentWise
+} from "../../api/adminApi";
 const AdminDashboard = () => {
 const [kpiData, setKpiData] = useState<any>({});
 const [attendanceTrend, setAttendanceTrend] = useState([]);
 const [todayStatus, setTodayStatus] = useState([]);
 const [departmentData, setDepartmentData] = useState([]);
-
-  
-
-  const COLORS = ["#4CAF50", "#F44336", "#FFC107"];
+const COLORS = ["#4CAF50", "#F44336", "#FFC107"];
 useEffect(() => {
-  const token = localStorage.getItem("token");
-
-  const headers = {
-    Authorization: `Bearer ${token}`
-  };
-
-  fetch("http://localhost:5000/admin/dashboard/kpis", { headers })
-    .then(res => res.json())                                    
-    .then(setKpiData);
-
-  fetch("http://localhost:5000/admin/dashboard/weekly-attendance", { headers })
-    .then(res => res.json())
-    .then(setAttendanceTrend);
-
-  fetch("http://localhost:5000/admin/dashboard/today-status", { headers })
-    .then(res => res.json())
-    .then(setTodayStatus);
-
-  fetch("http://localhost:5000/admin/dashboard/department-wise", { headers })
-    .then(res => res.json())
-    .then(setDepartmentData);
-
+  fetchDashboardData();
 }, []);
+const fetchDashboardData = async () => {
+    try {
+      const [
+        kpiRes,
+        weeklyRes,
+        todayRes,
+        deptRes
+      ] = await Promise.all([
+        getAdminKPIs(),
+        getWeeklyAttendance(),
+        getTodayStatusAdmin(),
+        getDepartmentWise()
+      ]);
+
+      setKpiData(kpiRes.data);
+      setAttendanceTrend(weeklyRes.data);
+      setTodayStatus(todayRes.data);
+      setDepartmentData(deptRes.data);
+    } catch (err: any) {
+      toast.error("Failed to load dashboard data");
+    }
+  };
 
   return (
     <div className="admin-dashboard">

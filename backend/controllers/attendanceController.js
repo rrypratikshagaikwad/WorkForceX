@@ -191,13 +191,18 @@ exports.checkIn = async (req, res) => {
   }
 
     // 4️⃣ Already checked in?
-    const [[existing]] = await db.query(
-      `SELECT attendance_id FROM attendance
-       WHERE employee_id = ?
-       AND DATE(check_in_time) = CURDATE()`,
-      [employee.employee_id]
-    );
-
+    // const [[existing]] = await db.query(
+    //   `SELECT attendance_id FROM attendance
+    //    WHERE employee_id = ?
+    //    AND DATE(check_in_time) = CURDATE()`,
+    //   [employee.employee_id]
+    // );
+const [[existing]] = await db.query(
+  `SELECT attendance_id FROM attendance
+   WHERE employee_id = ?
+   AND attendance_date = CURDATE()`,
+  [employee.employee_id]
+);
     if (existing) {
       return res.status(400).json({ message: "Already checked in today" });
     }
@@ -218,21 +223,36 @@ exports.checkIn = async (req, res) => {
     else if (hour > 10) status = "LATE";
 
     // 7️⃣ Insert attendance
-    await db.query(
-      `INSERT INTO attendance
-       (employee_id, location_id, check_in_time,
-        attendance_status, gps_latitude, gps_longitude,
-        check_in_photo_url)
-       VALUES (?, ?, NOW(), ?, ?, ?, ?)`,
-      [
-        employee.employee_id,
-        location.location_id,
-        status,
-        latitude,
-        longitude,
-        faceImage
-      ]
-    );
+    // await db.query(
+    //   `INSERT INTO attendance
+    //    (employee_id, location_id, check_in_time,
+    //     attendance_status, gps_latitude, gps_longitude,
+    //     check_in_photo_url)
+    //    VALUES (?, ?, NOW(), ?, ?, ?, ?)`,
+    //   [
+    //     employee.employee_id,
+    //     location.location_id,
+    //     status,
+    //     latitude,
+    //     longitude,
+    //     faceImage
+    //   ]
+    // );
+await db.query(
+  `INSERT INTO attendance
+   (employee_id, location_id, attendance_date,
+    check_in_time, attendance_status,
+    gps_latitude, gps_longitude, check_in_photo_url)
+   VALUES (?, ?, CURDATE(), NOW(), ?, ?, ?, ?)`,
+  [
+    employee.employee_id,
+    location.location_id,
+    status,
+    latitude,
+    longitude,
+    faceImage
+  ]
+);
 
     res.json({
       message: "Check-in successful",
@@ -417,13 +437,20 @@ exports.checkOut = async (req, res) => {
     }
 
     // 2️⃣ Today's attendance
-    const [[attendance]] = await db.query(
-      `SELECT attendance_id, location_id, check_in_time, check_out_time
-       FROM attendance
-       WHERE employee_id = ?
-       AND DATE(check_in_time) = CURDATE()`,
-      [employee.employee_id]
-    );
+    // const [[attendance]] = await db.query(
+    //   `SELECT attendance_id, location_id, check_in_time, check_out_time
+    //    FROM attendance
+    //    WHERE employee_id = ?
+    //    AND DATE(check_in_time) = CURDATE()`,
+    //   [employee.employee_id]
+    // );
+const [[attendance]] = await db.query(
+  `SELECT attendance_id, location_id, check_in_time, check_out_time
+   FROM attendance
+   WHERE employee_id = ?
+   AND attendance_date = CURDATE()`,
+  [employee.employee_id]
+);
 
     if (!attendance) {
       return res.status(400).json({ message: "No check-in today" });
@@ -662,17 +689,17 @@ exports.getMyLeaves = async (req, res) => {
 
     //Fetch employee leaves
     const [rows] = await db.query(
-      `SELECT 
-        leave_id,
-        start_date,
-        end_date,
-        reason,
-        status
-       FROM leave_request
-       WHERE employee_id = ?
-       ORDER BY applied_at DESC`,
-      [employee.employee_id]
-    );
+  `SELECT 
+    leave_id,
+    DATE(start_date) AS start_date,
+    DATE(end_date) AS end_date,
+    reason,
+    status
+   FROM leave_request
+   WHERE employee_id = ?
+   ORDER BY applied_at DESC`,
+  [employee.employee_id]
+);
 
     res.json(rows);
 

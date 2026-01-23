@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import "./ManageLeaves.css";
 import { toast } from "react-toastify";
 import { FaCheckCircle, FaTimesCircle } from "react-icons/fa";
+import { getAllLeaves, updateLeaveStatus } from "../../api/adminApi";
 interface Leave {
   leave_id: number;
   full_name: string;
@@ -18,38 +19,56 @@ const ManageLeaves = () => {
     fetchLeaves();
   }, []);
 
-  const fetchLeaves = async () => {
-    const token = localStorage.getItem("token");
+  // const fetchLeaves = async () => {
+  //   const token = localStorage.getItem("token");
 
-    const res = await fetch("http://localhost:5000/admin/all", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+  //   const res = await fetch("http://localhost:5000/admin/all", {
+  //     headers: { Authorization: `Bearer ${token}` },
+  //   });
 
-    const data = await res.json();
-    setLeaves(data);
+  //   const data = await res.json();
+  //   setLeaves(data);
+  // };
+
+  // const updateStatus = async (id: number, status: string) => {
+  //   const token = localStorage.getItem("token");
+
+  //   const res = await fetch(`http://localhost:5000/admin/${id}/status`, {
+  //     method: "PUT",
+  //     headers: {
+  //       "Content-Type": "application/json",
+  //       Authorization: `Bearer ${token}`,
+  //     },
+  //     body: JSON.stringify({ status }),
+  //   });
+
+  //   const data = await res.json();
+
+  //   if (!res.ok) {
+  //     toast.error(data.message);
+  //     return;
+  //   }
+
+  //   toast.success("Status updated");
+  //   fetchLeaves();
+  // };
+const fetchLeaves = async () => {
+    try {
+      const data = await getAllLeaves();
+      setLeaves(data);
+    } catch (error: any) {
+      toast.error("Failed to load leaves");
+    }
   };
 
-  const updateStatus = async (id: number, status: string) => {
-    const token = localStorage.getItem("token");
-
-    const res = await fetch(`http://localhost:5000/admin/${id}/status`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ status }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      toast.error(data.message);
-      return;
+  const handleStatusUpdate = async (id: number, status: string) => {
+    try {
+      await updateLeaveStatus(id, status);
+      toast.success("Status updated");
+      fetchLeaves();
+    } catch (error: any) {
+      toast.error("Failed to update status");
     }
-
-    toast.success("Status updated");
-    fetchLeaves();
   };
 
   return (
@@ -82,12 +101,12 @@ const ManageLeaves = () => {
                   <FaCheckCircle
                     className="icon approve"
                     title="Approve"
-                    onClick={() => updateStatus(l.leave_id, "APPROVED")}
+                    onClick={() => handleStatusUpdate(l.leave_id, "APPROVED")}
                   />
                   <FaTimesCircle
                     className="icon reject"
                     title="Reject"
-                    onClick={() => updateStatus(l.leave_id, "REJECTED")}
+                    onClick={() => handleStatusUpdate(l.leave_id, "REJECTED")}
                   />
                 </>
               )}

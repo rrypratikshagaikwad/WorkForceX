@@ -13,6 +13,13 @@ import {
 } from "recharts";
 import { toast } from "react-toastify";
 import "./EmployeeDashboard.css";
+import {
+  getTodayStatus,
+  getMonthlySummary,
+  getSalarySummary,
+  checkIn,
+  checkOut
+} from "../../api/attendanceApi";
 
 type AttendanceStatus = "NOT_CHECKED_IN" | "CHECKED_IN" | "CHECKED_OUT";
 
@@ -53,10 +60,10 @@ const [location, setLocation] = useState<{
   lng: number;
 } | null>(null);
 
-  const getAuthHeader = () => {
-    const token = localStorage.getItem("token");
-    return { Authorization: `Bearer ${token}` };
-  };
+  // const getAuthHeader = () => {
+  //   const token = localStorage.getItem("token");
+  //   return { Authorization: `Bearer ${token}` };
+  // };
 
   useEffect(() => {
     fetchTodayStatus();
@@ -66,37 +73,55 @@ const [location, setLocation] = useState<{
 
   /* -------------------- API CALLS -------------------- */
 
+  // const fetchTodayStatus = async () => {
+  //   const res = await fetch("http://localhost:5000/attendance/today", {
+  //     headers: getAuthHeader()
+  //   });
+  //   const data = await res.json();
+  //   setAttendanceStatus(data.status);
+  // };
   const fetchTodayStatus = async () => {
-    const res = await fetch("http://localhost:5000/attendance/today", {
-      headers: getAuthHeader()
-    });
-    const data = await res.json();
-    setAttendanceStatus(data.status);
-  };
+  const { data } = await getTodayStatus();
+  setAttendanceStatus(data.status);
+};
 
-  const fetchMonthlySummary = async () => {
-    const res = await fetch(
-      "http://localhost:5000/attendance/monthly-summary",
-      { headers: getAuthHeader() }
-    );
-    const data = await res.json();
+  // const fetchMonthlySummary = async () => {
+  //   const res = await fetch(
+  //     "http://localhost:5000/attendance/monthly-summary",
+  //     { headers: getAuthHeader() }
+  //   );
+  //   const data = await res.json();
+  //   setChartData(data);
+  // };
+const fetchMonthlySummary = async () => {
+  try {
+    const { data } = await getMonthlySummary();
     setChartData(data);
-  };
+  } catch (err) {
+    toast.error("Failed to load monthly summary");
+  }
+};
+  // const fetchSalarySummary = async () => {
+  //   const res = await fetch(
+  //     `http://localhost:5000/attendance/salary/my-summary?month=${month}&year=${year}`,
+  //     { headers: getAuthHeader() }
+  //   );
 
-  const fetchSalarySummary = async () => {
-    const res = await fetch(
-      `http://localhost:5000/attendance/salary/my-summary?month=${month}&year=${year}`,
-      { headers: getAuthHeader() }
-    );
-
-    const data = await res.json();
-    if (!res.ok) {
-      toast.error(data.message);
-      return;
-    }
+  //   const data = await res.json();
+  //   if (!res.ok) {
+  //     toast.error(data.message);
+  //     return;
+  //   }
+  //   setSalary(data);
+  // };
+const fetchSalarySummary = async () => {
+  try {
+    const { data } = await getSalarySummary(month, year);
     setSalary(data);
-  };
-
+  } catch (err: any) {
+    toast.error(err.response?.data?.message || "Salary load failed");
+  }
+};
   /* -------------------- ACTIONS -------------------- */
 
   // const handleCheckIn = async () => {
@@ -109,37 +134,61 @@ const [location, setLocation] = useState<{
   //   toast.success("Checked in");
   //   setAttendanceStatus("CHECKED_IN");
   // };
+// const handleCheckIn = async () => {
+//   if (!faceImage || !location) {
+//     toast.error("Face & Location required");
+//     return;
+//   }
+
+//   const res = await fetch("http://localhost:5000/attendance/checkin", {
+//     method: "POST",
+//     headers: {
+//       "Content-Type": "application/json",
+//       ...getAuthHeader()
+//     },
+//     body: JSON.stringify({
+//       faceImage,
+//       latitude: location.lat,
+//       longitude: location.lng
+//     })
+    
+//   });
+
+//   const data = await res.json();
+//   if (!res.ok) return toast.error(data.message);
+
+//   toast.success("Checked in successfully");
+//   setAttendanceStatus("CHECKED_IN");
+
+// // RESET
+//   setStartVerification(false);
+//   setFaceImage(null);
+//   setLocation(null);
+  
+// };
+
+
 const handleCheckIn = async () => {
   if (!faceImage || !location) {
     toast.error("Face & Location required");
     return;
   }
-
-  const res = await fetch("http://localhost:5000/attendance/checkin", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...getAuthHeader()
-    },
-    body: JSON.stringify({
-      faceImage,
-      latitude: location.lat,
-      longitude: location.lng
-    })
-    
+  try{
+  await checkIn({
+    faceImage,
+    latitude: location.lat,
+    longitude: location.lng
   });
-console.log(res,"Response");
-  const data = await res.json();
-  if (!res.ok) return toast.error(data.message);
-
   toast.success("Checked in successfully");
   setAttendanceStatus("CHECKED_IN");
 
-// RESET
-  setStartVerification(false);
-  setFaceImage(null);
-  setLocation(null);
-  
+    // RESET
+    setFaceImage(null);
+    setLocation(null);
+    setStartVerification(false);
+  } catch (err: any) {
+    toast.error(err.response?.data?.message || "Checkin failed");
+  }
 };
 
   // const handleCheckOut = async () => {
@@ -152,39 +201,63 @@ console.log(res,"Response");
   //   toast.success("Checked out");
   //   setAttendanceStatus("CHECKED_OUT");
   // };
+// const handleCheckOut = async () => {
+//   if (!faceImage || !location) {
+//     toast.error("Face & Location required");
+//     return;
+//   }
+
+//   const res = await fetch("http://localhost:5000/attendance/checkout", {
+//     method: "POST",
+//     headers: {
+//       "Content-Type": "application/json",
+//       ...getAuthHeader()
+//     },
+//     body: JSON.stringify({
+//       faceImage,
+//       latitude: location.lat,
+//       longitude: location.lng
+//     })
+//   });
+
+//   const data = await res.json();
+
+//   if (!res.ok) {
+//     toast.error(data.message);
+//     return;
+//   }
+
+//   toast.success("Checked out successfully");
+//   setAttendanceStatus("CHECKED_OUT");
+
+//   // RESET
+//   setFaceImage(null);
+//   setLocation(null);
+//   setStartVerification(false);
+// };
 const handleCheckOut = async () => {
   if (!faceImage || !location) {
     toast.error("Face & Location required");
     return;
   }
 
-  const res = await fetch("http://localhost:5000/attendance/checkout", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...getAuthHeader()
-    },
-    body: JSON.stringify({
+  try {
+    await checkOut({
       faceImage,
       latitude: location.lat,
       longitude: location.lng
-    })
-  });
+    });
 
-  const data = await res.json();
+    toast.success("Checked out successfully");
+    setAttendanceStatus("CHECKED_OUT");
 
-  if (!res.ok) {
-    toast.error(data.message);
-    return;
+    // RESET
+    setFaceImage(null);
+    setLocation(null);
+    setStartVerification(false);
+  } catch (err: any) {
+    toast.error(err.response?.data?.message || "Checkout failed");
   }
-
-  toast.success("Checked out successfully");
-  setAttendanceStatus("CHECKED_OUT");
-
-  // RESET
-  setFaceImage(null);
-  setLocation(null);
-  setStartVerification(false);
 };
 
   const handleFaceCapture = (image: string) => {

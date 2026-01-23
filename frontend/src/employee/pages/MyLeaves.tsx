@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import "./Leave.css";
-
+import { getMyLeaves } from "../../api/leaveApi";
 interface Leave {
   leave_id: number;
   start_date: string;
@@ -16,17 +16,20 @@ const MyLeaves = () => {
     fetchLeaves();
   }, []);
 
-  const fetchLeaves = async () => {
-    const token = localStorage.getItem("token");
+  // const fetchLeaves = async () => {
+  //   const token = localStorage.getItem("token");
 
-    const res = await fetch("http://localhost:5000/attendance/my-leaves", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+  //   const res = await fetch("http://localhost:5000/attendance/my-leaves", {
+  //     headers: { Authorization: `Bearer ${token}` },
+  //   });
 
-    const data = await res.json();
-    setLeaves(data);
-  };
-
+  //   const data = await res.json();
+  //   setLeaves(data);
+  // };
+const fetchLeaves = async () => {
+  const { data } = await getMyLeaves();
+  setLeaves(data);
+};
   return (
     <div className="leave-page">
       <h2>My Leave Requests</h2>

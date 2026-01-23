@@ -3,7 +3,10 @@ import "./ViewEmployees.css";
 import { toast } from "react-toastify";
 import {FaBan } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-
+import {
+  getEmployees,
+  deactivateEmployee
+} from "../../api/adminApi";
 interface Employee {
   employee_id: number;
   name: string;
@@ -41,61 +44,90 @@ useEffect(() => {
   fetchEmployees();
 }, [page,debouncedSearch,departmentFilter,statusFilter]);
 
+// const fetchEmployees = async () => {
+//   try {
+//     const token = localStorage.getItem("token");
+
+//     const res = await fetch(
+//       `http://localhost:5000/admin/employees?page=${page}&limit=${limit}&search=${debouncedSearch}&department=${departmentFilter}&status=${statusFilter}`,
+//       {
+//         headers: { Authorization: `Bearer ${token}` }
+//       }
+//     );  
+
+//     const result = await res.json();
+
+//     if (!res.ok) {
+//       toast.error(result.message);
+//       return;
+//     }
+
+//     setEmployees(result.data);
+//     setTotalPages(result.pagination.totalPages);
+
+//   } catch {
+//     toast.error("Server error");
+//   } finally {
+//     setLoading(false);
+//   }
+// };
 const fetchEmployees = async () => {
   try {
-    const token = localStorage.getItem("token");
+    const res = await getEmployees({
+      page,
+      limit,
+      search: debouncedSearch,
+      department: departmentFilter,
+      status: statusFilter
+    });
 
-    const res = await fetch(
-      `http://localhost:5000/admin/employees?page=${page}&limit=${limit}&search=${debouncedSearch}&department=${departmentFilter}&status=${statusFilter}`,
-      {
-        headers: { Authorization: `Bearer ${token}` }
-      }
-    );  
-
-    const result = await res.json();
-
-    if (!res.ok) {
-      toast.error(result.message);
-      return;
-    }
-
-    setEmployees(result.data);
-    setTotalPages(result.pagination.totalPages);
-
-  } catch {
-    toast.error("Server error");
+    setEmployees(res.data.data);
+    setTotalPages(res.data.pagination.totalPages);
+  } catch (err: any) {
+    toast.error(err.response?.data?.message);
   } finally {
     setLoading(false);
   }
 };
 
-const deactivateEmployee = async (id: number) => {
-  if (!window.confirm("Are you sure you want to deactivate this employee?")) {
-    return;
-  }
+// const deactivateEmployee = async (id: number) => {
+//   if (!window.confirm("Are you sure you want to deactivate this employee?")) {
+//     return;
+//   }
+
+//   try {
+//     const token = localStorage.getItem("token");
+//     const res = await fetch(
+//       `http://localhost:5000/admin/employee/${id}/deactivate`,
+//       {
+//         method: "PUT",
+//         headers: {
+//           Authorization: `Bearer ${token}`,
+//         },
+//       }
+//     );
+
+//     const data = await res.json();
+//     if (!res.ok) {
+//       toast.error(data.message);
+//       return;
+//     }
+//     toast.success("Employee deactivated");
+//     // refresh list
+//     fetchEmployees();
+//   } catch (err) {
+//     toast.error("Server error");
+//   }
+// };
+const handleDeactivate = async (id: number) => {
+  if (!window.confirm("Deactivate employee?")) return;
 
   try {
-    const token = localStorage.getItem("token");
-    const res = await fetch(
-      `http://localhost:5000/admin/employee/${id}/deactivate`,
-      {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-
-    const data = await res.json();
-    if (!res.ok) {
-      toast.error(data.message);
-      return;
-    }
+    await deactivateEmployee(id);
     toast.success("Employee deactivated");
-    // refresh list
     fetchEmployees();
-  } catch (err) {
-    toast.error("Server error");
+  } catch (err: any) {
+    toast.error(err.response?.data?.message);
   }
 };
 
@@ -191,7 +223,7 @@ const deactivateEmployee = async (id: number) => {
         <FaBan
           className="icon deactivate"
           title="Deactivate Employee"
-          onClick={() => deactivateEmployee(emp.employee_id)}
+          onClick={() => handleDeactivate(emp.employee_id)}
         />
           </td>
         </tr>

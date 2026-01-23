@@ -1,5 +1,5 @@
 const faceapi = require("@vladmandic/face-api");
-// const faceapi = require("@vladmandic/face-api/dist/face-api.js");
+
 const canvas = require("canvas");
 
 async function getEmbedding(base64Image) {

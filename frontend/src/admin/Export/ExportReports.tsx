@@ -1,42 +1,54 @@
 import { useState } from "react";
 import "./ExportReports.css";
-
+import { downloadAttendance } from "../../api/exportApi";
 const ExportReports = () => {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
 
-  const token = localStorage.getItem("token");
+  // const token = localStorage.getItem("token");
 
- const download = async (type: "pdf" | "excel") => {
-  const token = localStorage.getItem("token");
+//  const download = async (type: "pdf" | "excel") => {
+//   const token = localStorage.getItem("token");
 
-  const res = await fetch(
-    `http://localhost:5000/export/attendance/${type}?from=${from}&to=${to}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+//   const res = await fetch(
+//     `http://localhost:5000/export/attendance/${type}?from=${from}&to=${to}`,
+//     {
+//       headers: {
+//         Authorization: `Bearer ${token}`,
+//       },
+//     }
+//   );
 
-  if (!res.ok) {
+//   if (!res.ok) {
+//     alert("Failed to download file");
+//     return;
+//   }
+
+//   const blob = await res.blob();
+//   const url = window.URL.createObjectURL(blob);
+
+//   const a = document.createElement("a");
+//   a.href = url;
+//   a.download = `attendance.${type === "pdf" ? "pdf" : "xlsx"}`;
+//   document.body.appendChild(a);
+//   a.click();
+
+//   document.body.removeChild(a);
+//   window.URL.revokeObjectURL(url);
+// };
+const download = async (type: "pdf" | "excel") => {
+  try {
+    const res = await downloadAttendance(type, from, to);
+    const url = window.URL.createObjectURL(res.data);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `attendance.${type === "pdf" ? "pdf" : "xlsx"}`;
+    a.click();
+  } catch {
     alert("Failed to download file");
-    return;
   }
-
-  const blob = await res.blob();
-  const url = window.URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `attendance.${type === "pdf" ? "pdf" : "xlsx"}`;
-  document.body.appendChild(a);
-  a.click();
-
-  document.body.removeChild(a);
-  window.URL.revokeObjectURL(url);
 };
-
 
   return (
     <div className="export-page">

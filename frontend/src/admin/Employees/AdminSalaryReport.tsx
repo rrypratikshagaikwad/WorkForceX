@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import "./AdminSalaryReport.css";
-
+import {
+  getAdminSalaryReport,
+  downloadAdminPayslip
+} from "../../api/adminApi";
 interface SalaryRow {
   employee_id: number;
   full_name: string;
@@ -24,49 +27,74 @@ const AdminSalaryReport = () => {
     fetchSalaryReport();
   }, [month, year]);
 
-  const fetchSalaryReport = async () => {
-    const res = await fetch(
-      `http://localhost:5000/admin/salary-report?month=${month}&year=${year}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
-    );
+  // const fetchSalaryReport = async () => {
+  //   const res = await fetch(
+  //     `http://localhost:5000/admin/salary-report?month=${month}&year=${year}`,
+  //     {
+  //       headers: {
+  //         Authorization: `Bearer ${token}`
+  //       }
+  //     }
+  //   );
 
-    const data = await res.json();
-    if (!res.ok) return toast.error(data.message);
+  //   const data = await res.json();
+  //   if (!res.ok) return toast.error(data.message);
 
-    setSalaries(data);
-  };
-const downloadPayslip = async (employeeId: number) => {
-  const res = await fetch(
-    `http://localhost:5000/admin/payslip?employeeId=${employeeId}&month=${month}&year=${year}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    }
-  );
-
-  if (!res.ok) {
-    const data = await res.json();
-    toast.error(data.message);
-    return;
+  //   setSalaries(data);
+  // };
+const fetchSalaryReport = async () => {
+  try {
+    const res = await getAdminSalaryReport(month, year);
+    setSalaries(res.data);
+  } catch (err: any) {
+    toast.error(err.response?.data?.message || "Failed to load salary report");
   }
-
-  const blob = await res.blob();
-  const url = window.URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `Payslip-${employeeId}-${month}-${year}.pdf`;
-  document.body.appendChild(a);
-  a.click();
-
-  a.remove();
-  window.URL.revokeObjectURL(url);
 };
+
+
+//   const downloadPayslip = async (employeeId: number) => {
+//   const res = await fetch(
+//     `http://localhost:5000/admin/payslip?employeeId=${employeeId}&month=${month}&year=${year}`,
+//     {
+//       headers: {
+//         Authorization: `Bearer ${token}`
+//       }
+//     }
+//   );
+
+//   if (!res.ok) {
+//     const data = await res.json();
+//     toast.error(data.message);
+//     return;
+//   }
+
+//   const blob = await res.blob();
+//   const url = window.URL.createObjectURL(blob);
+
+//   const a = document.createElement("a");
+//   a.href = url;
+//   a.download = `Payslip-${employeeId}-${month}-${year}.pdf`;
+//   document.body.appendChild(a);
+//   a.click();
+
+//   a.remove();
+//   window.URL.revokeObjectURL(url);
+// };
+
+const downloadPayslip = async (employeeId: number) => {
+  try {
+    const res = await downloadAdminPayslip(employeeId, month, year);
+
+    const url = window.URL.createObjectURL(res.data);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Payslip-${employeeId}-${month}-${year}.pdf`;
+    a.click();
+  } catch (err: any) {
+    toast.error("Failed to download payslip");
+  }
+};
+
 
   return (
     <div className="admin-salary-page">

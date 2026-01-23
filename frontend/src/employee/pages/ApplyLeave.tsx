@@ -1,45 +1,59 @@
 import { useState } from "react";
 import "./Leave.css";
 import { toast } from "react-toastify";
-
+import { applyLeave } from "../../api/leaveApi";
 const ApplyLeave = () => {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [reason, setReason] = useState("");
 
-  const applyLeave = async () => {
-    if (!fromDate || !toDate || !reason) {
-      toast.error("All fields required");
-      return;
-    }
+  // const applyLeave = async () => {
+  //   if (!fromDate || !toDate || !reason) {
+  //     toast.error("All fields required");
+  //     return;
+  //   }
 
-    const token = localStorage.getItem("token");
+  //   const token = localStorage.getItem("token");
 
-    const res = await fetch("http://localhost:5000/attendance/apply", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        start_date: fromDate,
-        end_date: toDate,
-        reason,
-      }),
+  //   const res = await fetch("http://localhost:5000/attendance/apply", {
+  //     method: "POST",
+  //     headers: {
+  //       "Content-Type": "application/json",
+  //       Authorization: `Bearer ${token}`,
+  //     },
+  //     body: JSON.stringify({
+  //       start_date: fromDate,
+  //       end_date: toDate,
+  //       reason,
+  //     }),
+  //   });
+
+  //   const data = await res.json();
+
+  //   if (!res.ok) {
+  //     toast.error(data.message);
+  //     return;
+  //   }
+
+  //   toast.success("Leave applied successfully");
+  //   setFromDate("");
+  //   setToDate("");
+  //   setReason("");
+  // };
+const handleApply = async () => {
+  try {
+    await applyLeave({
+      start_date: fromDate,
+      end_date: toDate,
+      reason
     });
 
-    const data = await res.json();
-
-    if (!res.ok) {
-      toast.error(data.message);
-      return;
-    }
-
     toast.success("Leave applied successfully");
-    setFromDate("");
-    setToDate("");
-    setReason("");
-  };
+    setFromDate(""); setToDate(""); setReason("");
+  } catch (err: any) {
+    toast.error(err.response?.data?.message);
+  }
+};
 
   return (
     <div className="leave-page">
@@ -59,7 +73,7 @@ const ApplyLeave = () => {
           onChange={e => setReason(e.target.value)}
         />
 
-        <button onClick={applyLeave}>Apply Leave</button>
+        <button onClick={handleApply}>Apply Leave</button>
       </div>
     </div>
   );

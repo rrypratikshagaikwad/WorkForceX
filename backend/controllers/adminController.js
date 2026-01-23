@@ -389,98 +389,98 @@ exports.deactivateEmployee = async (req, res) => {
 };
 
 //Admin Dashboard
-exports.getKPIs = async (req, res) => {
-  try {
-    const [[total]] = await db.query(
-      "SELECT COUNT(*) AS total FROM employee"
-    );
-
-          const [[present]] = await db.query(
-          `SELECT COUNT(DISTINCT employee_id) AS present
-          FROM attendance
-          WHERE DATE(check_in_time) = CURDATE()
-          AND attendance_status IN ('PRESENT', 'LATE', 'HALF_DAY')`
-        );
-        
-        const [[halfDay]] = await db.query(
-          `SELECT COUNT(DISTINCT employee_id) AS halfDay
-          FROM attendance
-          WHERE DATE(check_in_time) = CURDATE()
-          AND attendance_status = 'HALF_DAY'`
-        );
-        const [[onLeave]] = await db.query(
-          `SELECT COUNT(*) AS onLeave
-          FROM leave_request
-          WHERE status = 'approved'
-          AND CURDATE() BETWEEN start_date AND end_date`
-        );
-      const [[absent]] = await db.query(`
-        SELECT COUNT(*) AS absent
-        FROM employee e
-        WHERE e.employee_id NOT IN (
-          SELECT employee_id
-          FROM attendance
-          WHERE DATE(check_in_time) = CURDATE()
-        )
-      `);
-          res.json({
-        totalEmployees: total.total,
-        presentToday: present.present,
-        absentToday: absent.absent,
-        onLeave: onLeave.onLeave
-      });
-
-  } catch (err) {
-    res.status(500).json({ message: "Failed to load KPI data" });
-  }
-};
 // exports.getKPIs = async (req, res) => {
 //   try {
 //     const [[total]] = await db.query(
-//       "SELECT COUNT(*) AS total FROM employee WHERE status='active'"
+//       "SELECT COUNT(*) AS total FROM employee"
 //     );
 
-//     const [[present]] = await db.query(
-//       `SELECT COUNT(DISTINCT employee_id) AS present
-//        FROM attendance
-//        WHERE DATE(check_in_time) = CURDATE()
-//        AND attendance_status IN ('PRESENT', 'LATE')`
-//     );
-
-//     const [[halfDay]] = await db.query(
-//       `SELECT COUNT(DISTINCT employee_id) AS halfDay
-//        FROM attendance
-//        WHERE DATE(check_in_time) = CURDATE()
-//        AND attendance_status = 'HALF_DAY'`
-//     );
-
-//     const [[onLeave]] = await db.query(
-//       `SELECT COUNT(DISTINCT employee_id) AS onLeave
-//        FROM leave_request
-//        WHERE status = 'approved'
-//        AND CURDATE() BETWEEN start_date AND end_date`
-//     );
-
-//     const [[absent]] = await db.query(
-//       `SELECT COUNT(DISTINCT employee_id) AS absent
-//        FROM attendance
-//        WHERE DATE(check_in_time) = CURDATE()
-//        AND attendance_status = 'ABSENT'`
-//     );
-
-//     res.json({
-//       totalEmployees: total.total,
-//       presentToday: present.present,
-//       halfDayToday: halfDay.halfDay,
-//       absentToday: absent.absent,
-//       onLeave: onLeave.onLeave
-//     });
+//           const [[present]] = await db.query(
+//           `SELECT COUNT(DISTINCT employee_id) AS present
+//           FROM attendance
+//           WHERE DATE(check_in_time) = CURDATE()
+//           AND attendance_status IN ('PRESENT', 'LATE', 'HALF_DAY')`
+//         );
+        
+//         const [[halfDay]] = await db.query(
+//           `SELECT COUNT(DISTINCT employee_id) AS halfDay
+//           FROM attendance
+//           WHERE DATE(check_in_time) = CURDATE()
+//           AND attendance_status = 'HALF_DAY'`
+//         );
+//         const [[onLeave]] = await db.query(
+//           `SELECT COUNT(*) AS onLeave
+//           FROM leave_request
+//           WHERE status = 'approved'
+//           AND CURDATE() BETWEEN start_date AND end_date`
+//         );
+//       const [[absent]] = await db.query(`
+//         SELECT COUNT(*) AS absent
+//         FROM employee e
+//         WHERE e.employee_id NOT IN (
+//           SELECT employee_id
+//           FROM attendance
+//           WHERE DATE(check_in_time) = CURDATE()
+//         )
+//       `);
+//           res.json({
+//         totalEmployees: total.total,
+//         presentToday: present.present,
+//         absentToday: absent.absent,
+//         onLeave: onLeave.onLeave
+//       });
 
 //   } catch (err) {
-//     console.error(err);
 //     res.status(500).json({ message: "Failed to load KPI data" });
 //   }
 // };
+exports.getKPIs = async (req, res) => {
+  try {
+    const [[total]] = await db.query(
+      "SELECT COUNT(*) AS total FROM employee WHERE status='active'"
+    );
+
+    const [[present]] = await db.query(
+      `SELECT COUNT(DISTINCT employee_id) AS present
+       FROM attendance
+       WHERE DATE(check_in_time) = CURDATE()
+       AND attendance_status IN ('PRESENT', 'LATE')`
+    );
+
+    const [[halfDay]] = await db.query(
+      `SELECT COUNT(DISTINCT employee_id) AS halfDay
+       FROM attendance
+       WHERE DATE(check_in_time) = CURDATE()
+       AND attendance_status = 'HALF_DAY'`
+    );
+
+    const [[onLeave]] = await db.query(
+      `SELECT COUNT(DISTINCT employee_id) AS onLeave
+       FROM leave_request
+       WHERE status = 'approved'
+       AND CURDATE() BETWEEN start_date AND end_date`
+    );
+
+    const [[absent]] = await db.query(
+      `SELECT COUNT(DISTINCT employee_id) AS absent
+       FROM attendance
+       WHERE DATE(check_in_time) = CURDATE()
+       AND attendance_status = 'ABSENT'`
+    );
+
+    res.json({
+      totalEmployees: total.total,
+      presentToday: present.present,
+      halfDayToday: halfDay.halfDay,
+      absentToday: absent.absent,
+      onLeave: onLeave.onLeave
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to load KPI data" });
+  }
+};
 
 // WEEKLY LINE CHART
 // exports.getWeeklyAttendance = async (req, res) => {
@@ -543,39 +543,78 @@ exports.getWeeklyAttendance = async (req, res) => {
 };
 
 
+// exports.getTodayStatus = async (req, res) => {
+//   try {
+//     const [[present]] = await db.query(
+//       "SELECT COUNT(DISTINCT employee_id) AS value FROM attendance WHERE DATE(check_in_time) = CURDATE()"
+//     );
+
+//     const [[absent]] = await db.query(
+//       `SELECT COUNT(*) AS value
+//        FROM employee
+//        WHERE employee_id NOT IN (
+//          SELECT employee_id FROM attendance WHERE DATE(check_in_time) = CURDATE()
+//        )`
+//     );
+
+//     const [[leave]] = await db.query(
+//       `SELECT COUNT(*) AS value
+//        FROM leave_request
+//        WHERE status='approved'
+//        AND CURDATE() BETWEEN start_date AND end_date`
+//     );
+
+//     res.json([
+//       { name: "Present", value: present.value },
+//       { name: "Absent", value: absent.value },
+//       { name: "On Leave", value: leave.value }
+//     ]);
+//   } catch (err) {
+//     res.status(500).json({ message: "Failed to load today status" });
+//   }
+// };
+
+
+// BAR CHART
+
+
 exports.getTodayStatus = async (req, res) => {
   try {
-    const [[present]] = await db.query(
-      "SELECT COUNT(DISTINCT employee_id) AS value FROM attendance WHERE DATE(check_in_time) = CURDATE()"
-    );
+    const today = new Date().toISOString().slice(0, 10);
 
-    const [[absent]] = await db.query(
-      `SELECT COUNT(*) AS value
-       FROM employee
-       WHERE employee_id NOT IN (
-         SELECT employee_id FROM attendance WHERE DATE(check_in_time) = CURDATE()
-       )`
-    );
+    const [[present]] = await db.query(`
+      SELECT COUNT(*) AS value
+      FROM attendance
+      WHERE attendance_date = ?
+      AND attendance_status IN ('PRESENT', 'HALF_DAY', 'LATE')
+    `, [today]);
 
-    const [[leave]] = await db.query(
-      `SELECT COUNT(*) AS value
-       FROM leave_request
-       WHERE status='approved'
-       AND CURDATE() BETWEEN start_date AND end_date`
-    );
+    const [[absent]] = await db.query(`
+      SELECT COUNT(*) AS value
+      FROM attendance
+      WHERE attendance_date = ?
+      AND attendance_status = 'ABSENT'
+    `, [today]);
+
+    const [[leave]] = await db.query(`
+      SELECT COUNT(*) AS value
+      FROM leave_request
+      WHERE status = 'approved'
+      AND ? BETWEEN start_date AND end_date
+    `, [today]);
 
     res.json([
       { name: "Present", value: present.value },
       { name: "Absent", value: absent.value },
       { name: "On Leave", value: leave.value }
     ]);
+
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Failed to load today status" });
   }
 };
 
-
-// BAR CHART
 exports.getDepartmentWise = async (req, res) => {
   try {
     const [rows] = await db.query(`
@@ -644,17 +683,17 @@ exports.getAttendanceReport = async (req, res) => {
  */
 exports.getAllLeaves = async (req, res) => {
   const [rows] = await db.query(
-    `SELECT 
-      l.leave_id,
-      e.full_name,
-      l.start_date,
-       l.end_date,
-      l.reason,
-      l.status
-     FROM leave_request l
-     JOIN employee e ON l.employee_id = e.employee_id
-     ORDER BY l.applied_at DESC`
-  );
+  `SELECT 
+    l.leave_id,
+    e.full_name,
+    DATE(l.start_date) AS start_date,
+    DATE(l.end_date) AS end_date,
+    l.reason,
+    l.status
+   FROM leave_request l
+   JOIN employee e ON l.employee_id = e.employee_id
+   ORDER BY l.applied_at DESC`
+);
 
   res.json(rows);
 };

@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import "./EmployeeSalary.css";
+import {
+  getSalarySummary,
+  downloadPayslip
+} from "../../api/attendanceApi";
 
 interface SalaryDetails {
   month: string;
@@ -26,54 +30,84 @@ const EmployeeSalary = () => {
     fetchSalary();
   }, [month, year]);
 
-  const fetchSalary = async () => {
-    if (!month || !year) return;
+  // const fetchSalary = async () => {
+  //   if (!month || !year) return;
 
-    const res = await fetch(
-      `http://localhost:5000/attendance/salary/my-summary?month=${month}&year=${year}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
-    );
+  //   const res = await fetch(
+  //     `http://localhost:5000/attendance/salary/my-summary?month=${month}&year=${year}`,
+  //     {
+  //       headers: {
+  //         Authorization: `Bearer ${token}`
+  //       }
+  //     }
+  //   );
 
-    const data = await res.json();
-    if (!res.ok) return toast.error(data.message);
+  //   const data = await res.json();
+  //   if (!res.ok) return toast.error(data.message);
 
+  //   setSalary(data);
+  // };
+
+const fetchSalary = async () => {
+  if (!month || !year) return;
+
+  try {
+    const { data } = await getSalarySummary(+month, +year);
     setSalary(data);
-  };
-const downloadPayslip = async () => {
-  const token = localStorage.getItem("token");
-
-  const res = await fetch(
-    `http://localhost:5000/attendance/salary/payslip?month=${month}&year=${year}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    }
-  );
-
-  if (!res.ok) {
-    const data = await res.json();
-    toast.error(data.message);
-    return;
+  } catch (err: any) {
+    toast.error(err.response?.data?.message);
   }
-
-  const blob = await res.blob();
-  const url = window.URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `Payslip-${month}-${year}.pdf`;
-  document.body.appendChild(a);
-  a.click();
-
-  a.remove();
-  window.URL.revokeObjectURL(url);
 };
 
+//   const downloadPayslip = async () => {
+//   const token = localStorage.getItem("token");
+
+//   const res = await fetch(
+//     `http://localhost:5000/attendance/salary/payslip?month=${month}&year=${year}`,
+//     {
+//       headers: {
+//         Authorization: `Bearer ${token}`
+//       }
+//     }
+//   );
+
+//   if (!res.ok) {
+//     const data = await res.json();
+//     toast.error(data.message);
+//     return;
+//   }
+
+//   const blob = await res.blob();
+//   const url = window.URL.createObjectURL(blob);
+
+//   const a = document.createElement("a");
+//   a.href = url;
+//   a.download = `Payslip-${month}-${year}.pdf`;
+//   document.body.appendChild(a);
+//   a.click();
+
+//   a.remove();
+//   window.URL.revokeObjectURL(url);
+// };
+
+const downloadPDF = async () => {
+  if (!month || !year) return;
+
+  try {
+    const res = await downloadPayslip(month, year);
+
+    const url = window.URL.createObjectURL(res.data);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Payslip-${month}-${year}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (err: any) {
+    toast.error(err.response?.data?.message || "Failed to download payslip");
+  }
+};
   return (
     <div className="salary-page">
       <h2>Salary Details</h2>
@@ -95,7 +129,7 @@ const downloadPayslip = async () => {
           </div>
           <button
           className="download-btn"
-          onClick={downloadPayslip}
+          onClick={downloadPDF}
         >
           Download Payslip PDF
         </button>

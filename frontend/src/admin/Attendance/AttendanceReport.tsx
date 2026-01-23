@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import "./AttendanceReport.css";
 import { toast } from "react-toastify";
+import { getAttendanceReport } from "../../api/adminApi";
 
 interface Attendance {
   attendance_id: number;
@@ -17,37 +18,50 @@ const AttendanceReport = () => {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [department, setDepartment] = useState("");
-const [officeId, setOfficeId] = useState("");
-const [offices, setOffices] = useState<{ location_id: number; location_name: string }[]>([]);
+// const [officeId, setOfficeId] = useState("");
+// const [offices, setOffices] = useState<{ location_id: number; location_name: string }[]>([]);
 
   useEffect(() => {
     fetchReport();
   }, []);
 
-  const fetchReport = async () => {
-    try {
-      const token = localStorage.getItem("token");
+  // const fetchReport = async () => {
+  //   try {
+  //     const token = localStorage.getItem("token");
 
-      const res = await fetch(
-        `http://localhost:5000/admin/attendance-report?fromDate=${fromDate}&toDate=${toDate}&department=${department}`,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
+  //     const res = await fetch(
+  //       `http://localhost:5000/admin/attendance-report?fromDate=${fromDate}&toDate=${toDate}&department=${department}`,
+  //       {
+  //         headers: { Authorization: `Bearer ${token}` }
+  //       }
+  //     );
 
-      const data = await res.json();
+  //     const data = await res.json();
 
-      if (!res.ok) {
-        toast.error(data.message);
-        return;
-      }
+  //     if (!res.ok) {
+  //       toast.error(data.message);
+  //       return;
+  //     }
 
-      setRecords(data);
+  //     setRecords(data);
 
-    } catch {
-      toast.error("Server error");
-    }
-  };
+  //   } catch {
+  //     toast.error("Server error");
+  //   }
+  // };
+const fetchReport = async () => {
+  try {
+    const res = await getAttendanceReport({
+      fromDate,
+      toDate,
+      department
+    });
+
+    setRecords(res.data);
+  } catch (err: any) {
+    toast.error(err.response?.data?.message || "Failed to load report");
+  }
+};
 
 useEffect(() => {
   // fetchOffices();

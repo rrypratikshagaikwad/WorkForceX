@@ -2,7 +2,7 @@ import { useState } from "react";
 import "./AddEmployee.css";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
-
+import { addEmployee } from "../../api/adminApi";
 const AddEmployee = () => {
   const navigate = useNavigate();
 interface ReferenceContact {
@@ -68,30 +68,35 @@ const handleReferenceChange = (
   });
 };
 
-  const handleSubmit = async (e: any) => {
-    e.preventDefault();
-    const token = localStorage.getItem("token");
+  // const handleSubmit = async (e: any) => {
+  //   e.preventDefault();
+  //   const token = localStorage.getItem("token");
 
-    const res = await fetch("http://localhost:5000/admin/add-employee", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify(formData)
-    });
+  //   const res = await fetch("http://localhost:5000/admin/add-employee", {
+  //     method: "POST",
+  //     headers: {
+  //       "Content-Type": "application/json",
+  //       Authorization: `Bearer ${token}`
+  //     },
+  //     body: JSON.stringify(formData)
+  //   });
 
-    const data = await res.json();
+  //   const data = await res.json();
 
-    if (!res.ok) {
-      toast.error(data.message);
-      return;
-    }
+  //   if (!res.ok) {
+  //     toast.error(data.message);
+  //     return;
+  //   }
 
-    toast.success("Employee added successfully");
-    setTimeout(() => navigate("/admin/dashboard"), 1200);
-  };
-
+  //   toast.success("Employee added successfully");
+  //   setTimeout(() => navigate("/admin/dashboard"), 1200);
+  // };
+const handleSubmit = async (e: any) => {
+  e.preventDefault();
+  await addEmployee(formData);
+  toast.success("Employee added successfully");
+  navigate("/admin/dashboard");
+};
   return (
     <div className="add-employee-page">
       <h2>Add New Employee</h2>

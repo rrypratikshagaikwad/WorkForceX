@@ -8,16 +8,16 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
 
 const authRoutes = require("./routes/authRoutes");
-app.use("/auth", authRoutes)
+app.use("/api/auth", authRoutes)
 
 const attendanceRoutes = require("./routes/attendanceRoutes");
-app.use("/attendance", attendanceRoutes);
+app.use("/api/attendance", attendanceRoutes);
 
 const adminRoutes = require("./routes/adminRoutes");
-app.use("/admin", adminRoutes);
+app.use("/api/admin", adminRoutes);
 
 const exportRoutes = require("./routes/exportRoutes");
-app.use("/export", exportRoutes);
+app.use("/api/export", exportRoutes);
 
 require("./cron/autoAbsent");
 
