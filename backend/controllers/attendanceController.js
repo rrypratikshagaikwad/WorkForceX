@@ -571,40 +571,84 @@ exports.registerFace = async (req, res) => {
   res.json({ message: "Face registered successfully" });
 };
 
+// exports.getAttendanceStatus = async (req, res) => {
+//   const userId = req.user.user_id;
+
+//   // 1️⃣ user_id → employee_id
+//   const [[employee]] = await db.query(
+//     `SELECT employee_id FROM employee WHERE user_id = ?`,
+//     [userId]
+//   );
+
+//   if (!employee) {
+//     return res.json({ status: "NOT_CHECKED_IN" });
+//   }
+
+//   // 2️⃣ today's attendance
+//   const [[row]] = await db.query(
+//     `SELECT check_in_time, check_out_time
+//      FROM attendance
+//      WHERE employee_id = ?
+//      AND DATE(check_in_time) = CURDATE()
+//      LIMIT 1`,
+//     [employee.employee_id]
+//   );
+
+//   if (!row) {
+//     return res.json({ status: "NOT_CHECKED_IN" });
+//   }
+
+//   if (row.check_out_time) {
+//     return res.json({ status: "CHECKED_OUT" });
+//   }
+
+//   return res.json({ status: "CHECKED_IN" });
+// };
+
 exports.getAttendanceStatus = async (req, res) => {
-  const userId = req.user.user_id;
+  try {
+    // 🔐 Safety check
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
 
-  // 1️⃣ user_id → employee_id
-  const [[employee]] = await db.query(
-    `SELECT employee_id FROM employee WHERE user_id = ?`,
-    [userId]
-  );
+    const userId = req.user.user_id;
 
-  if (!employee) {
-    return res.json({ status: "NOT_CHECKED_IN" });
+    // 1️⃣ user_id → employee_id
+    const [[employee]] = await db.query(
+      `SELECT employee_id FROM employee WHERE user_id = ?`,
+      [userId]
+    );
+
+    if (!employee) {
+      return res.json({ status: "NOT_CHECKED_IN" });
+    }
+
+    // 2️⃣ today's attendance (USE attendance_date)
+    const [[row]] = await db.query(
+      `SELECT check_in_time, check_out_time
+       FROM attendance
+       WHERE employee_id = ?
+       AND attendance_date = CURDATE()
+       LIMIT 1`,
+      [employee.employee_id]
+    );
+
+    if (!row) {
+      return res.json({ status: "NOT_CHECKED_IN" });
+    }
+
+    if (row.check_out_time) {
+      return res.json({ status: "CHECKED_OUT" });
+    }
+
+    return res.json({ status: "CHECKED_IN" });
+
+  } catch (err) {
+    console.error("getAttendanceStatus error:", err);
+    res.status(500).json({ message: "Failed to fetch attendance status" });
   }
-
-  // 2️⃣ today's attendance
-  const [[row]] = await db.query(
-    `SELECT check_in_time, check_out_time
-     FROM attendance
-     WHERE employee_id = ?
-     AND DATE(check_in_time) = CURDATE()
-     LIMIT 1`,
-    [employee.employee_id]
-  );
-
-  if (!row) {
-    return res.json({ status: "NOT_CHECKED_IN" });
-  }
-
-  if (row.check_out_time) {
-    return res.json({ status: "CHECKED_OUT" });
-  }
-
-  return res.json({ status: "CHECKED_IN" });
 };
-
 
 
 exports.getEmployeeAttendance = async (req, res) => {
