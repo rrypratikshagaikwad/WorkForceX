@@ -8,7 +8,7 @@ exports.loginUser = async (req, res) => {
 
     // 1️⃣ Get user by email
     const [rows] = await db.query(
-      "SELECT * FROM User WHERE email = ?",
+      "SELECT * FROM user WHERE email = ?",
       [email]
     );
 

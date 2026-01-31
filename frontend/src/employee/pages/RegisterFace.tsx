@@ -7,7 +7,7 @@ const RegisterFace = () => {
   const [faceImage, setFaceImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const token = localStorage.getItem("token");
+  // const token = localStorage.getItem("token");
 
   const handleFaceCapture = (image: string) => {
     setFaceImage(image);

@@ -68,3 +68,6 @@ def verify_face(data: VerifyFaceRequest):
 
     except Exception as e:
         return {"error": str(e)}
+@app.get("/")
+def root():
+    return {"status": "Face API running"}

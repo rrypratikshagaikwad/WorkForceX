@@ -24,7 +24,7 @@ const EmployeeSalary = () => {
   const month = params.get("month");
   const year = params.get("year");
 
-  const token = localStorage.getItem("token");
+  // const token = localStorage.getItem("token");
 
   useEffect(() => {
     fetchSalary();

@@ -21,7 +21,7 @@ const AdminSalaryReport = () => {
   const [year, setYear] = useState(today.getFullYear());
   const [salaries, setSalaries] = useState<SalaryRow[]>([]);
 
-  const token = localStorage.getItem("token");
+  // const token = localStorage.getItem("token");
 
   useEffect(() => {
     fetchSalaryReport();
