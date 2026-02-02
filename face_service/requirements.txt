@@ -2,7 +2,5 @@ fastapi
 uvicorn
 numpy
 opencv-python-headless
-pydantic
+face-recognition
 python-multipart
-insightface
-onnxruntime
