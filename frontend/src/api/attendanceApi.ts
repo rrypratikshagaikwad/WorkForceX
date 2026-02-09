@@ -31,8 +31,11 @@ export const applyLeave = (data: any) =>
 export const getMyLeaves = () =>
   API.get("/attendance/my-leaves");
 
-export const registerFace = (data: any) =>
-  API.post("/attendance/register-face", data);
+export const registerFace = (faceImage: string) => {
+  return API.post("/attendance/register-face", {
+    faceImage: faceImage
+  });
+};
 
 
 export const downloadPayslip = (month: string, year: string) =>

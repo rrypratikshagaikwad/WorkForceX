@@ -3,10 +3,11 @@ const moment = require("moment");
 const sendSMS = require("../utils/sendSMS");
 const { getDistanceInMeters } = require("../utils/locationUtils");
 const PDFDocument = require("pdfkit");
-const { registerFace } = require("../utils/faceApi");
-const { verifyFace } = require("../utils/faceApi");
+// const { registerFace } = require("../utils/faceApi");
+// const { verifyFace } = require("../utils/faceApi");
 const { detectLocation } = require("../utils/officeDetector");
-
+const { verifyFace } = require("../utils/rekognition");
+const { registerFace } = require("../utils/rekognition");
 // exports.checkIn = async (req, res) => {
 //   try {
 //     const userId = req.user.user_id;
@@ -129,144 +130,144 @@ const { detectLocation } = require("../utils/officeDetector");
 //CHECK OUT
 
 
-exports.checkIn = async (req, res) => {
-  try {
-    const userId = req.user.user_id;
-    console.log("JWT user_id:", req.user.user_id);
+// exports.checkIn = async (req, res) => {
+//   try {
+//     const userId = req.user.user_id;
+//     console.log("JWT user_id:", req.user.user_id);
 
-    const { faceImage, latitude, longitude } = req.body;
+//     const { faceImage, latitude, longitude } = req.body;
 
-    if (!faceImage || latitude == null || longitude == null) {
-      return res.status(400).json({ message: "Face & location required" });
-    }
+//     if (!faceImage || latitude == null || longitude == null) {
+//       return res.status(400).json({ message: "Face & location required" });
+//     }
 
-    // 1️⃣ Employee
-    // const [[employee]] = await db.query(
-    //   `SELECT employee_id, face_embedding, face_registered
-    //    FROM employee WHERE user_id = ?`,
-    //   [userId]
-    // );
-    const [[employee]] = await db.query(`
-      SELECT 
-        e.employee_id,
-        e.face_embedding,
-        e.face_registered,
-        d.is_roaming
-      FROM employee e
-      JOIN department d ON e.department_id = d.department_id
-      WHERE e.user_id = ?
-    `, [userId]);
+//     // 1️⃣ Employee
+//     // const [[employee]] = await db.query(
+//     //   `SELECT employee_id, face_embedding, face_registered
+//     //    FROM employee WHERE user_id = ?`,
+//     //   [userId]
+//     // );
+//     const [[employee]] = await db.query(`
+//       SELECT 
+//         e.employee_id,
+//         e.face_embedding,
+//         e.face_registered,
+//         d.is_roaming
+//       FROM employee e
+//       JOIN department d ON e.department_id = d.department_id
+//       WHERE e.user_id = ?
+//     `, [userId]);
 
-    if (!employee || !employee.face_registered) {
-      return res.status(403).json({ message: "Face not registered" });
-    }
+//     if (!employee || !employee.face_registered) {
+//       return res.status(403).json({ message: "Face not registered" });
+//     }
 
-    // 2️⃣ All active locations
-    const [locations] = await db.query(
-      `SELECT location_id, name, type, latitude, longitude, radius_meters
-       FROM location WHERE status='active'`
-    );
+//     // 2️⃣ All active locations
+//     const [locations] = await db.query(
+//       `SELECT location_id, name, type, latitude, longitude, radius_meters
+//        FROM location WHERE status='active'`
+//     );
 
-    // 3️⃣ Detect office/plant
-    let location = detectLocation(latitude, longitude, locations);
-// console.log(location,"----");
-    // if (!location) {
-    //   return res.status(403).json({
-    //     message: "You are not inside any office or plant location"
-    //   });
-    // }
-    if (!location) {
-    if (employee.is_roaming === 1) {
-      location = {
-        location_id: null,
-        name: "ROAMING",
-        type: "ROAMING",
-        distance: 0
-      };
-    } else {
-      return res.status(403).json({
-        message: "You are not inside any office location"
-      });
-    }
-  }
+//     // 3️⃣ Detect office/plant
+//     let location = detectLocation(latitude, longitude, locations);
+// // console.log(location,"----");
+//     // if (!location) {
+//     //   return res.status(403).json({
+//     //     message: "You are not inside any office or plant location"
+//     //   });
+//     // }
+//     if (!location) {
+//     if (employee.is_roaming === 1) {
+//       location = {
+//         location_id: null,
+//         name: "ROAMING",
+//         type: "ROAMING",
+//         distance: 0
+//       };
+//     } else {
+//       return res.status(403).json({
+//         message: "You are not inside any office location"
+//       });
+//     }
+//   }
 
-    // 4️⃣ Already checked in?
-    // const [[existing]] = await db.query(
-    //   `SELECT attendance_id FROM attendance
-    //    WHERE employee_id = ?
-    //    AND DATE(check_in_time) = CURDATE()`,
-    //   [employee.employee_id]
-    // );
-const [[existing]] = await db.query(
-  `SELECT attendance_id FROM attendance
-   WHERE employee_id = ?
-   AND attendance_date = CURDATE()`,
-  [employee.employee_id]
-);
-    if (existing) {
-      return res.status(400).json({ message: "Already checked in today" });
-    }
+//     // 4️⃣ Already checked in?
+//     // const [[existing]] = await db.query(
+//     //   `SELECT attendance_id FROM attendance
+//     //    WHERE employee_id = ?
+//     //    AND DATE(check_in_time) = CURDATE()`,
+//     //   [employee.employee_id]
+//     // );
+// const [[existing]] = await db.query(
+//   `SELECT attendance_id FROM attendance
+//    WHERE employee_id = ?
+//    AND attendance_date = CURDATE()`,
+//   [employee.employee_id]
+// );
+//     if (existing) {
+//       return res.status(400).json({ message: "Already checked in today" });
+//     }
 
-    // 5️⃣ Face verify
-    const storedEmbedding = JSON.parse(employee.face_embedding);
-    const faceResult = await verifyFace(faceImage, storedEmbedding);
+//     // 5️⃣ Face verify
+//     const storedEmbedding = JSON.parse(employee.face_embedding);
+//     const faceResult = await verifyFace(faceImage, storedEmbedding);
 
-    if (!faceResult.matched) {
-      return res.status(403).json({ message: "Face verification failed" });
-    }
+//     if (!faceResult.matched) {
+//       return res.status(403).json({ message: "Face verification failed" });
+//     }
 
-    // 6️⃣ Status logic
-    const now = new Date();
-    const hour = now.getHours();
-    let status = "PRESENT";
-    if (hour >= 11) status = "HALF_DAY";
-    else if (hour > 10) status = "LATE";
+//     // 6️⃣ Status logic
+//     const now = new Date();
+//     const hour = now.getHours();
+//     let status = "PRESENT";
+//     if (hour >= 11) status = "HALF_DAY";
+//     else if (hour > 10) status = "LATE";
 
-    // 7️⃣ Insert attendance
-    // await db.query(
-    //   `INSERT INTO attendance
-    //    (employee_id, location_id, check_in_time,
-    //     attendance_status, gps_latitude, gps_longitude,
-    //     check_in_photo_url)
-    //    VALUES (?, ?, NOW(), ?, ?, ?, ?)`,
-    //   [
-    //     employee.employee_id,
-    //     location.location_id,
-    //     status,
-    //     latitude,
-    //     longitude,
-    //     faceImage
-    //   ]
-    // );
-await db.query(
-  `INSERT INTO attendance
-   (employee_id, location_id, attendance_date,
-    check_in_time, attendance_status,
-    gps_latitude, gps_longitude, check_in_photo_url)
-   VALUES (?, ?, CURDATE(), NOW(), ?, ?, ?, ?)`,
-  [
-    employee.employee_id,
-    location.location_id,
-    status,
-    latitude,
-    longitude,
-    faceImage
-  ]
-);
+//     // 7️⃣ Insert attendance
+//     // await db.query(
+//     //   `INSERT INTO attendance
+//     //    (employee_id, location_id, check_in_time,
+//     //     attendance_status, gps_latitude, gps_longitude,
+//     //     check_in_photo_url)
+//     //    VALUES (?, ?, NOW(), ?, ?, ?, ?)`,
+//     //   [
+//     //     employee.employee_id,
+//     //     location.location_id,
+//     //     status,
+//     //     latitude,
+//     //     longitude,
+//     //     faceImage
+//     //   ]
+//     // );
+// await db.query(
+//   `INSERT INTO attendance
+//    (employee_id, location_id, attendance_date,
+//     check_in_time, attendance_status,
+//     gps_latitude, gps_longitude, check_in_photo_url)
+//    VALUES (?, ?, CURDATE(), NOW(), ?, ?, ?, ?)`,
+//   [
+//     employee.employee_id,
+//     location.location_id,
+//     status,
+//     latitude,
+//     longitude,
+//     faceImage
+//   ]
+// );
 
-    res.json({
-      message: "Check-in successful",
-      location: location.name,
-      location_type: location.type,
-      attendance_status: status,
-      gps_distance: location.distance.toFixed(2)
-    });
+//     res.json({
+//       message: "Check-in successful",
+//       location: location.name,
+//       location_type: location.type,
+//       attendance_status: status,
+//       gps_distance: location.distance.toFixed(2)
+//     });
 
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Check-in failed" });
-  }
-};
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ message: "Check-in failed" });
+//   }
+// };
 
 
 
@@ -409,167 +410,243 @@ await db.query(
 //   }
 // };
 
-exports.checkOut = async (req, res) => {
+
+exports.checkIn = async (req, res) => {
   try {
     const userId = req.user.user_id;
     const { faceImage, latitude, longitude } = req.body;
+
+
+console.log("DEBUG faceImage type:", typeof faceImage);
+    console.log("DEBUG faceImage exists:", !!faceImage);
+    console.log(
+      "DEBUG startsWith data:image:",
+      faceImage?.startsWith("data:image")
+    );
+
 
     if (!faceImage || latitude == null || longitude == null) {
       return res.status(400).json({ message: "Face & location required" });
     }
 
-    // 1️⃣ Employee + shift
-    const [[employee]] = await db.query(
-    `SELECT 
-      e.employee_id,
-      e.face_embedding,
-      IFNULL(s.full_day_hours, 8) AS full_day_hours,
-      IFNULL(s.half_day_hours, 4) AS half_day_hours,
-      IFNULL(s.ot_allowed, 0) AS ot_allowed
-    FROM employee e
-    LEFT JOIN shift s ON e.shift_id = s.shift_id
-    WHERE e.user_id = ?`,
-    [userId]
-  );
+    const [[employee]] = await db.query(`
+      SELECT 
+        e.employee_id,
+        e.face_id,
+        e.face_registered,
+        d.is_roaming
+      FROM employee e
+      JOIN department d ON e.department_id = d.department_id
+      WHERE e.user_id = ?
+    `, [userId]);
 
-    if (!employee) {
-      return res.status(404).json({ message: "Employee not found" });
+    if (!employee || !employee.face_registered) {
+      return res.status(403).json({ message: "Face not registered" });
     }
 
-    // 2️⃣ Today's attendance
-    // const [[attendance]] = await db.query(
-    //   `SELECT attendance_id, location_id, check_in_time, check_out_time
-    //    FROM attendance
-    //    WHERE employee_id = ?
-    //    AND DATE(check_in_time) = CURDATE()`,
-    //   [employee.employee_id]
-    // );
-const [[attendance]] = await db.query(
-  `SELECT attendance_id, location_id, check_in_time, check_out_time
-   FROM attendance
-   WHERE employee_id = ?
-   AND attendance_date = CURDATE()`,
-  [employee.employee_id]
-);
+    const [[existing]] = await db.query(`
+      SELECT attendance_id
+      FROM attendance
+      WHERE employee_id = ?
+      AND attendance_date = CURDATE()
+    `, [employee.employee_id]);
 
-    if (!attendance) {
-      return res.status(400).json({ message: "No check-in today" });
+    if (existing) {
+      return res.status(400).json({ message: "Already checked in today" });
     }
 
-    if (attendance.check_out_time) {
-      return res.status(400).json({ message: "Already checked out" });
+    const match = await verifyFace(faceImage);
+
+    if (!match) {
+      return res.status(403).json({ message: "Face not matched" });
     }
 
-    // 3️⃣ Detect location
-    const [locations] = await db.query(
-      `SELECT * FROM location WHERE status='active'`
-    );
-
-    let location = detectLocation(latitude, longitude, locations);
-
-    // if (!location || location.location_id !== attendance.location_id) {
-    //   return res.status(403).json({
-    //     message: "Check-out must be from same location"
-    //   });
-    // }
-    // If attendance was from fixed location → enforce same location
-    if (attendance.location_id !== null) {
-      if (!location || location.location_id !== attendance.location_id) {
-        return res.status(403).json({
-          message: "Check-out must be from same location"
-        });
-      }
-    }
-// If location_id IS NULL → roaming → allow checkout anywhere
-
-    // 4️⃣ Face verification
-    const faceResult = await verifyFace(
-      faceImage,
-      JSON.parse(employee.face_embedding)
-    );
-
-    if (!faceResult.matched) {
-      return res.status(403).json({ message: "Face verification failed" });
+    if (match.faceId !== employee.face_id) {
+      return res.status(403).json({ message: "Face belongs to another user" });
     }
 
-    // 5️⃣ Work hour calculation
-    const checkInTime = new Date(attendance.check_in_time);
-    const checkOutTime = new Date();
-
-    const workHours =
-      (checkOutTime - checkInTime) / (1000 * 60 * 60);
-
-    // 6️⃣ Attendance status
-    let status = "ABSENT";
-
-    if (workHours >= employee.full_day_hours) {
-      status = "PRESENT";
-    } else if (workHours >= employee.half_day_hours) {
-      status = "HALF_DAY";
+    if (match.confidence < 80) {
+      return res.status(403).json({ message: "Low face confidence" });
     }
 
-    // 7️⃣ Overtime
-    let overtimeHours = 0;
-    if (employee.ot_allowed && workHours > employee.full_day_hours) {
-      overtimeHours = workHours - employee.full_day_hours;
-    }
-
-    // 8️⃣ Update attendance
-    await db.query(
-      `UPDATE attendance
-       SET check_out_time = NOW(),
-           attendance_status = ?,
-           working_hours = ?,
-           overtime_hours = ?,
-           check_out_photo_url = ?,
-           gps_latitude = ?,
-           gps_longitude = ?
-       WHERE attendance_id = ?`,
-      [
-        status,
-        workHours.toFixed(2),
-        overtimeHours.toFixed(2),
-        faceImage,
-        latitude,
-        longitude,
-        attendance.attendance_id
-      ]
-    );
+    await db.query(`
+      INSERT INTO attendance
+      (employee_id, attendance_date, check_in_time, attendance_status)
+      VALUES (?, CURDATE(), NOW(), 'PRESENT')
+    `, [employee.employee_id]);
 
     res.json({
-      message: "Check-out successful",
-      attendance_status: status,
-      work_hours: workHours.toFixed(2),
-      overtime_hours: overtimeHours.toFixed(2)
+      message: "Check-in successful",
+      confidence: match.confidence
     });
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Check-out failed" });
+    console.error("CHECK-IN ERROR:", err.message);
+    res.status(500).json({ message: err.message });
   }
 };
 
+// exports.checkOut = async (req, res) => {
+//   try {
+//     const userId = req.user.user_id;
+//     const { faceImage, latitude, longitude } = req.body;
+
+//     if (!faceImage || latitude == null || longitude == null) {
+//       return res.status(400).json({ message: "Face & location required" });
+//     }
+
+//     // 1️⃣ Employee + shift
+//     const [[employee]] = await db.query(
+//     `SELECT 
+//       e.employee_id,
+//       e.face_embedding,
+//       IFNULL(s.full_day_hours, 8) AS full_day_hours,
+//       IFNULL(s.half_day_hours, 4) AS half_day_hours,
+//       IFNULL(s.ot_allowed, 0) AS ot_allowed
+//     FROM employee e
+//     LEFT JOIN shift s ON e.shift_id = s.shift_id
+//     WHERE e.user_id = ?`,
+//     [userId]
+//   );
+
+//     if (!employee) {
+//       return res.status(404).json({ message: "Employee not found" });
+//     }
+
+//     // 2️⃣ Today's attendance
+//     // const [[attendance]] = await db.query(
+//     //   `SELECT attendance_id, location_id, check_in_time, check_out_time
+//     //    FROM attendance
+//     //    WHERE employee_id = ?
+//     //    AND DATE(check_in_time) = CURDATE()`,
+//     //   [employee.employee_id]
+//     // );
+// const [[attendance]] = await db.query(
+//   `SELECT attendance_id, location_id, check_in_time, check_out_time
+//    FROM attendance
+//    WHERE employee_id = ?
+//    AND attendance_date = CURDATE()`,
+//   [employee.employee_id]
+// );
+
+//     if (!attendance) {
+//       return res.status(400).json({ message: "No check-in today" });
+//     }
+
+//     if (attendance.check_out_time) {
+//       return res.status(400).json({ message: "Already checked out" });
+//     }
+
+//     // 3️⃣ Detect location
+//     const [locations] = await db.query(
+//       `SELECT * FROM location WHERE status='active'`
+//     );
+
+//     let location = detectLocation(latitude, longitude, locations);
+
+//     // if (!location || location.location_id !== attendance.location_id) {
+//     //   return res.status(403).json({
+//     //     message: "Check-out must be from same location"
+//     //   });
+//     // }
+//     // If attendance was from fixed location → enforce same location
+//     if (attendance.location_id !== null) {
+//       if (!location || location.location_id !== attendance.location_id) {
+//         return res.status(403).json({
+//           message: "Check-out must be from same location"
+//         });
+//       }
+//     }
+// // If location_id IS NULL → roaming → allow checkout anywhere
+
+//     // 4️⃣ Face verification
+//     const faceResult = await verifyFace(
+//       faceImage,
+//       JSON.parse(employee.face_embedding)
+//     );
+
+//     if (!faceResult.matched) {
+//       return res.status(403).json({ message: "Face verification failed" });
+//     }
+
+//     // 5️⃣ Work hour calculation
+//     const checkInTime = new Date(attendance.check_in_time);
+//     const checkOutTime = new Date();
+
+//     const workHours =
+//       (checkOutTime - checkInTime) / (1000 * 60 * 60);
+
+//     // 6️⃣ Attendance status
+//     let status = "ABSENT";
+
+//     if (workHours >= employee.full_day_hours) {
+//       status = "PRESENT";
+//     } else if (workHours >= employee.half_day_hours) {
+//       status = "HALF_DAY";
+//     }
+
+//     // 7️⃣ Overtime
+//     let overtimeHours = 0;
+//     if (employee.ot_allowed && workHours > employee.full_day_hours) {
+//       overtimeHours = workHours - employee.full_day_hours;
+//     }
+
+//     // 8️⃣ Update attendance
+//     await db.query(
+//       `UPDATE attendance
+//        SET check_out_time = NOW(),
+//            attendance_status = ?,
+//            working_hours = ?,
+//            overtime_hours = ?,
+//            check_out_photo_url = ?,
+//            gps_latitude = ?,
+//            gps_longitude = ?
+//        WHERE attendance_id = ?`,
+//       [
+//         status,
+//         workHours.toFixed(2),
+//         overtimeHours.toFixed(2),
+//         faceImage,
+//         latitude,
+//         longitude,
+//         attendance.attendance_id
+//       ]
+//     );
+
+//     res.json({
+//       message: "Check-out successful",
+//       attendance_status: status,
+//       work_hours: workHours.toFixed(2),
+//       overtime_hours: overtimeHours.toFixed(2)
+//     });
+
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ message: "Check-out failed" });
+//   }
+// };
 
 
-exports.registerFace = async (req, res) => {
-  const userId = req.user.user_id;
-  const { faceImage } = req.body;
 
-  const result = await registerFace(faceImage);
+// exports.registerFace = async (req, res) => {
+//   const userId = req.user.user_id;
+//   const { faceImage } = req.body;
 
-  if (!result.embedding) {
-    return res.status(400).json({ message: "Face not detected" });
-  }
+//   const result = await registerFace(faceImage);
 
-  await db.query(
-    `UPDATE employee
-     SET face_embedding = ?, face_registered = true
-     WHERE user_id = ?`,
-    [JSON.stringify(result.embedding), userId]
-  );
+//   if (!result.embedding) {
+//     return res.status(400).json({ message: "Face not detected" });
+//   }
 
-  res.json({ message: "Face registered successfully" });
-};
+//   await db.query(
+//     `UPDATE employee
+//      SET face_embedding = ?, face_registered = true
+//      WHERE user_id = ?`,
+//     [JSON.stringify(result.embedding), userId]
+//   );
+
+//   res.json({ message: "Face registered successfully" });
+// };
 
 // exports.getAttendanceStatus = async (req, res) => {
 //   const userId = req.user.user_id;
@@ -605,6 +682,159 @@ exports.registerFace = async (req, res) => {
 //   return res.json({ status: "CHECKED_IN" });
 // };
 
+
+exports.checkOut = async (req, res) => {
+  try {
+    const userId = req.user.user_id;
+    const { faceImage, latitude, longitude } = req.body;
+
+    if (!faceImage || latitude == null || longitude == null) {
+      return res.status(400).json({ message: "Face & location required" });
+    }
+
+    // 1️⃣ Employee + shift
+    const [[employee]] = await db.query(`
+      SELECT 
+        e.employee_id,
+        e.face_id,
+        IFNULL(s.full_day_hours, 8) AS full_day_hours,
+        IFNULL(s.half_day_hours, 4) AS half_day_hours,
+        IFNULL(s.ot_allowed, 0) AS ot_allowed
+      FROM employee e
+      LEFT JOIN shift s ON e.shift_id = s.shift_id
+      WHERE e.user_id = ?
+    `, [userId]);
+
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    // 2️⃣ Today's attendance
+    const [[attendance]] = await db.query(`
+      SELECT attendance_id, location_id, check_in_time, check_out_time
+      FROM attendance
+      WHERE employee_id = ?
+      AND attendance_date = CURDATE()
+    `, [employee.employee_id]);
+
+    if (!attendance) {
+      return res.status(400).json({ message: "No check-in today" });
+    }
+
+    if (attendance.check_out_time) {
+      return res.status(400).json({ message: "Already checked out" });
+    }
+
+    // 3️⃣ Location validation
+    const [locations] = await db.query(`
+      SELECT * FROM location WHERE status='active'
+    `);
+
+    const location = detectLocation(latitude, longitude, locations);
+
+    if (attendance.location_id !== null) {
+      if (!location || location.location_id !== attendance.location_id) {
+        return res.status(403).json({
+          message: "Check-out must be from same location"
+        });
+      }
+    }
+
+    // 4️⃣ Face verification (ONLY 1 CALL)
+    const match = await verifyFace(faceImage);
+
+    if (!match || match.faceId !== employee.face_id) {
+      return res.status(403).json({ message: "Face verification failed" });
+    }
+
+    if (match.confidence < 95) {
+      return res.status(403).json({ message: "Low face confidence" });
+    }
+
+    // 5️⃣ Work hours
+    const workHours =
+      (new Date() - new Date(attendance.check_in_time)) /
+      (1000 * 60 * 60);
+
+    // 6️⃣ Status
+    let status = "ABSENT";
+    if (workHours >= employee.full_day_hours) status = "PRESENT";
+    else if (workHours >= employee.half_day_hours) status = "HALF_DAY";
+
+    // 7️⃣ Overtime
+    let overtime = 0;
+    if (employee.ot_allowed && workHours > employee.full_day_hours) {
+      overtime = workHours - employee.full_day_hours;
+    }
+
+    // 8️⃣ Update attendance
+    await db.query(`
+      UPDATE attendance
+      SET check_out_time = NOW(),
+          attendance_status = ?,
+          working_hours = ?,
+          overtime_hours = ?,
+          check_out_photo_url = ?,
+          gps_latitude = ?,
+          gps_longitude = ?
+      WHERE attendance_id = ?
+    `, [
+      status,
+      workHours.toFixed(2),
+      overtime.toFixed(2),
+      faceImage,
+      latitude,
+      longitude,
+      attendance.attendance_id
+    ]);
+
+    res.json({
+      message: "Check-out successful",
+      attendance_status: status,
+      work_hours: workHours.toFixed(2),
+      overtime_hours: overtime.toFixed(2),
+      confidence: match.confidence
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Check-out failed" });
+  }
+};
+
+exports.registerFace = async (req, res) => {
+  try {
+    const userId = req.user.user_id;
+    const { faceImage } = req.body;
+// console.log("DEBUG req.body:", req.body);
+
+//     console.log("DEBUG registerFace faceImage:", typeof faceImage);
+
+    if (!faceImage) {
+      return res.status(400).json({ message: "Face image required" });
+    }
+
+    const faceId = await registerFace(faceImage, `user_${userId}`);
+
+    if (!faceId) {
+      return res.status(400).json({ message: "No face detected. Try again." });
+    }
+
+    await db.query(
+      `UPDATE employee SET face_id=?, face_registered=1 WHERE user_id=?`,
+      [faceId, userId]
+    );
+
+    res.json({
+      message: "Face registered successfully",
+      faceId
+    });
+
+  } catch (err) {
+    console.error("REGISTER FACE ERROR:", err.message);
+    res.status(500).json({ message: err.message });
+  }
+};
 exports.getAttendanceStatus = async (req, res) => {
   try {
     // 🔐 Safety check
