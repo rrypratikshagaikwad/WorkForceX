@@ -27,12 +27,13 @@ function getImageBuffer(base64Image) {
 async function registerFace(base64Image, externalId) {
   const buffer = getImageBuffer(base64Image);
 
-  const res = await rekognition.indexFaces({
-    CollectionId: "attendance_faces",
-    Image: { Bytes: buffer },
-    ExternalImageId: externalId,
-    DetectionAttributes: []
-  }).promise();
+const res = await rekognition.indexFaces({
+  CollectionId: "attendance_faces",
+  Image: { Bytes: buffer },
+  ExternalImageId: externalId,
+  QualityFilter: "AUTO", // 🔥 ADD THIS
+  DetectionAttributes: []
+}).promise();
 
   if (!res.FaceRecords || res.FaceRecords.length === 0) {
     return null;
@@ -46,20 +47,21 @@ async function verifyFace(base64Image) {
   const buffer = getImageBuffer(base64Image);
 
   const res = await rekognition.searchFacesByImage({
-    CollectionId: "attendance_faces",
-    Image: { Bytes: buffer },
-    FaceMatchThreshold: 90,
-    MaxFaces: 1
-  }).promise();
+  CollectionId: "attendance_faces",
+  Image: { Bytes: buffer },
+  FaceMatchThreshold: 80, // 🔥 FIX HERE
+  MaxFaces: 1
+}).promise();
 
   if (!res.FaceMatches || res.FaceMatches.length === 0) {
     return null;
   }
 
   return {
-    faceId: res.FaceMatches[0].Face.FaceId,
-    confidence: res.FaceMatches[0].Similarity
-  };
+  faceId: res.FaceMatches[0].Face.FaceId,
+  externalId: res.FaceMatches[0].Face.ExternalImageId,
+  confidence: res.FaceMatches[0].Similarity
+};
 }
 
 module.exports = { registerFace, verifyFace };

@@ -413,55 +413,45 @@ const { registerFace } = require("../utils/rekognition");
 
 exports.checkIn = async (req, res) => {
   try {
+    console.log("CHECKIN API HIT");
+
     const userId = req.user.user_id;
     const { faceImage, latitude, longitude } = req.body;
 
-
-console.log("DEBUG faceImage type:", typeof faceImage);
-    console.log("DEBUG faceImage exists:", !!faceImage);
-    console.log(
-      "DEBUG startsWith data:image:",
-      faceImage?.startsWith("data:image")
-    );
-
+    console.log("User ID:", userId);
 
     if (!faceImage || latitude == null || longitude == null) {
       return res.status(400).json({ message: "Face & location required" });
     }
 
-    const [[employee]] = await db.query(`
-      SELECT 
-        e.employee_id,
-        e.face_id,
-        e.face_registered,
-        d.is_roaming
-      FROM employee e
-      JOIN department d ON e.department_id = d.department_id
-      WHERE e.user_id = ?
+    const [rows] = await db.query(`
+      SELECT employee_id, face_id, face_registered
+      FROM employee
+      WHERE user_id = ?
     `, [userId]);
 
-    if (!employee || !employee.face_registered) {
+    if (rows.length === 0) {
+      console.log("No employee found for user:", userId);
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    const employee = rows[0];
+
+    console.log("DB Employee:", employee);
+
+    if (Number(employee.face_registered) !== 1) {
       return res.status(403).json({ message: "Face not registered" });
     }
 
-    const [[existing]] = await db.query(`
-      SELECT attendance_id
-      FROM attendance
-      WHERE employee_id = ?
-      AND attendance_date = CURDATE()
-    `, [employee.employee_id]);
-
-    if (existing) {
-      return res.status(400).json({ message: "Already checked in today" });
-    }
-
     const match = await verifyFace(faceImage);
+
+    console.log("Rekognition result:", match);
 
     if (!match) {
       return res.status(403).json({ message: "Face not matched" });
     }
 
-    if (match.faceId !== employee.face_id) {
+    if (match.externalId !== `user_${userId}`) {
       return res.status(403).json({ message: "Face belongs to another user" });
     }
 
@@ -481,8 +471,8 @@ console.log("DEBUG faceImage type:", typeof faceImage);
     });
 
   } catch (err) {
-    console.error("CHECK-IN ERROR:", err.message);
-    res.status(500).json({ message: err.message });
+    console.error("CHECK-IN ERROR:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
